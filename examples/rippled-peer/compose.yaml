@@ -1,0 +1,18 @@
+services:
+  rippled:
+    image: your-rippled-image:latest  # replace with your rippled Docker image
+    container_name: rippled-peer
+    restart: unless-stopped
+    volumes:
+      - ./rippled/config:/config
+      - ./rippled/var/lib/rippled/db:/var/lib/rippled/db
+    ports:
+      # Peer protocol — public
+      - "51235:51235"
+      # Exporter metrics — must be published so Prometheus can scrape them.
+      # The exporter runs in this container's network namespace (network_mode: container:)
+      # and binds to this port from within that shared namespace.
+      - "9998:9998"
+      #- "80:80"
+      #- "443:443"
+      #- "6006:6006"

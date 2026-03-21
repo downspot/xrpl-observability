@@ -1,0 +1,34 @@
+services:
+  rippled-exporter-peer:
+    image: islandsound/rippled-exporter:latest
+    container_name: rippled-exporter-peer
+    restart: unless-stopped
+    network_mode: "container:rippled-peer"
+    environment:
+      - RIPPLED_URL=http://127.0.0.1:5005
+      - NODE_TYPE=peer
+      - SCRAPE_INTERVAL=3
+      - METRICS_PORT=9998
+    # network_mode: container: shares rippled's network namespace so the exporter
+    # can reach the admin port on 127.0.0.1:5005 directly without any port mapping.
+    # Metrics are served on the rippled container's network — add "9998:9998" to
+    # your rippled-peer compose ports section so Prometheus can scrape them.
+    # NOTE: if rippled-peer is recreated, restart this container:
+    #   docker restart rippled-exporter-peer
+
+  rippled-exporter-validator:
+    image: islandsound/rippled-exporter:latest
+    container_name: rippled-exporter-validator
+    restart: unless-stopped
+    network_mode: "container:rippled-validator"
+    environment:
+      - RIPPLED_URL=http://127.0.0.1:5005
+      - NODE_TYPE=validator
+      - SCRAPE_INTERVAL=3
+      - METRICS_PORT=9999
+    # network_mode: container: shares rippled's network namespace so the exporter
+    # can reach the admin port on 127.0.0.1:5005 directly without any port mapping.
+    # Metrics are served on the rippled container's network — add "9999:9999" to
+    # your rippled-validator compose ports section so Prometheus can scrape them.
+    # NOTE: if rippled-validator is recreated, restart this container:
+    #   docker restart rippled-exporter-validator

@@ -1,0 +1,1292 @@
+{
+  "__inputs": [
+    {
+      "name": "PROMETHEUS",
+      "label": "Prometheus",
+      "description": "",
+      "type": "datasource",
+      "pluginId": "prometheus",
+      "pluginName": "Prometheus"
+    }
+  ],
+  "__requires": [
+    {"type": "datasource", "id": "prometheus", "name": "Prometheus", "version": "1.0.0"}
+  ],
+  "uid": "rippled-deep-dive",
+  "title": "XRPL rippled Deep Dive",
+  "tags": ["rippled", "xrpl"],
+  "timezone": "browser",
+  "schemaVersion": 38,
+  "version": 1,
+  "refresh": "30s",
+  "templating": {
+    "list": [
+      {
+        "name": "node_type",
+        "label": "Node Type",
+        "type": "query",
+        "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+        "definition": "label_values(rippled_server_state, node_type)",
+        "query": {"query": "label_values(rippled_server_state, node_type)", "refId": "StandardVariableQuery"},
+        "refresh": 2,
+        "multi": true,
+        "includeAll": true,
+        "current": {},
+        "options": [],
+        "hide": 0,
+        "sort": 1
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Inbound vs Outbound Peers",
+      "description": "Number of inbound and outbound TCP peer connections. Validators typically show 0 inbound.",
+      "type": "timeseries",
+      "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+      "gridPos": {"h": 8, "w": 8, "x": 0, "y": 0},
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+          "expr": "rippled_peer_inbound_total{node_type=~\"$node_type\"}",
+          "legendFormat": "{{node_type}} Inbound",
+          "interval": "30s",
+          "refId": "A"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+          "expr": "rippled_peer_outbound_total{node_type=~\"$node_type\"}",
+          "legendFormat": "{{node_type}} Outbound",
+          "interval": "30s",
+          "refId": "B"
+        }
+      ],
+      "options": {
+        "tooltip": {"mode": "multi", "sort": "none"},
+        "legend": {"displayMode": "list", "placement": "bottom", "showLegend": true}
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "lineWidth": 1, "fillOpacity": 5, "showPoints": "never",
+            "spanNulls": false, "lineInterpolation": "smooth",
+            "axisLabel": "peers"
+          },
+          "color": {"mode": "palette-classic"},
+          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]}
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 2,
+      "title": "Peer Latency",
+      "description": "Round-trip latency to connected peers in milliseconds. Avg/min/max give a distribution across all current connections. Y-axis capped at 500ms — outlier peers near disconnect threshold may exceed this.",
+      "type": "timeseries",
+      "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+      "gridPos": {"h": 8, "w": 8, "x": 8, "y": 0},
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+          "expr": "rippled_peer_latency_avg_ms{node_type=~\"$node_type\"}",
+          "legendFormat": "{{node_type}} Avg",
+          "interval": "30s",
+          "refId": "A"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+          "expr": "rippled_peer_latency_min_ms{node_type=~\"$node_type\"}",
+          "legendFormat": "{{node_type}} Min",
+          "interval": "30s",
+          "refId": "B"
+        }
+      ],
+      "options": {
+        "tooltip": {"mode": "multi", "sort": "none"},
+        "legend": {"displayMode": "list", "placement": "bottom", "showLegend": true}
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "max": 500,
+          "custom": {
+            "lineWidth": 1, "fillOpacity": 5, "showPoints": "never",
+            "spanNulls": false, "lineInterpolation": "smooth"
+          },
+          "color": {"mode": "palette-classic"},
+          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]}
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 3,
+      "title": "Consensus Disputes",
+      "description": "Transactions in dispute during the current consensus round — those not agreed upon by all UNL validators. Resets each round (~3s). Spikes are normal during high throughput.",
+      "type": "timeseries",
+      "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+      "gridPos": {"h": 8, "w": 8, "x": 16, "y": 0},
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+          "expr": "avg_over_time(rippled_consensus_disputes{node_type=~\"$node_type\"}[30s])",
+          "legendFormat": "{{node_type}}",
+          "interval": "30s",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "tooltip": {"mode": "multi", "sort": "none"},
+        "legend": {"displayMode": "list", "placement": "bottom", "showLegend": true}
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "lineWidth": 1, "fillOpacity": 5, "showPoints": "never",
+            "spanNulls": false, "lineInterpolation": "smooth",
+            "axisLabel": "transactions"
+          },
+          "color": {"mode": "palette-classic"},
+          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]}
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 4,
+      "title": "Network Fees (drops)",
+      "description": "Transaction fees in drops of XRP (1 XRP = 1,000,000 drops). Open Ledger fee rises when demand is high. Base fee is the minimum; median reflects actual market rate.",
+      "type": "timeseries",
+      "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+      "gridPos": {"h": 8, "w": 8, "x": 0, "y": 8},
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+          "expr": "avg_over_time(rippled_fee_median_drops{node_type=~\"$node_type\"}[30s])",
+          "legendFormat": "{{node_type}} Median",
+          "interval": "30s",
+          "refId": "A"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+          "expr": "avg_over_time(rippled_fee_open_ledger_drops{node_type=~\"$node_type\"}[30s])",
+          "legendFormat": "{{node_type}} Open Ledger",
+          "interval": "30s",
+          "refId": "B"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+          "expr": "avg_over_time(rippled_fee_base_drops{node_type=~\"$node_type\"}[30s])",
+          "legendFormat": "{{node_type}} Base",
+          "interval": "30s",
+          "refId": "C"
+        }
+      ],
+      "options": {
+        "tooltip": {"mode": "multi", "sort": "none"},
+        "legend": {"displayMode": "list", "placement": "bottom", "showLegend": true}
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "lineWidth": 1, "fillOpacity": 5, "showPoints": "never",
+            "spanNulls": false, "lineInterpolation": "smooth",
+            "axisLabel": "drops"
+          },
+          "color": {"mode": "palette-classic"},
+          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]}
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 5,
+      "title": "Transaction Queue",
+      "description": "Transactions waiting in the queue (Queue), currently being applied to the open ledger (Current Ledger), and the expected count based on recent history (Expected).",
+      "type": "timeseries",
+      "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+      "gridPos": {"h": 8, "w": 8, "x": 8, "y": 8},
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+          "expr": "avg_over_time(rippled_ledger_queue_tx_count{node_type=~\"$node_type\"}[30s])",
+          "legendFormat": "{{node_type}} Queue",
+          "interval": "30s",
+          "refId": "A"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+          "expr": "avg_over_time(rippled_ledger_current_tx_count{node_type=~\"$node_type\"}[30s])",
+          "legendFormat": "{{node_type}} Current Ledger",
+          "interval": "30s",
+          "refId": "B"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+          "expr": "avg_over_time(rippled_ledger_expected_tx_count{node_type=~\"$node_type\"}[30s])",
+          "legendFormat": "{{node_type}} Expected",
+          "interval": "30s",
+          "refId": "C"
+        }
+      ],
+      "options": {
+        "tooltip": {"mode": "multi", "sort": "none"},
+        "legend": {"displayMode": "list", "placement": "bottom", "showLegend": true}
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "lineWidth": 1, "fillOpacity": 5, "showPoints": "never",
+            "spanNulls": false, "lineInterpolation": "smooth",
+            "axisLabel": "transactions"
+          },
+          "color": {"mode": "palette-classic"},
+          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]}
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 6,
+      "title": "Version Spread",
+      "description": "Current peer count per rippled version. A mix is normal during rolling upgrades.",
+      "type": "barchart",
+      "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+      "gridPos": {"h": 8, "w": 8, "x": 16, "y": 8},
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+          "expr": "rippled_peer_version_total{node_type=~\"$node_type\"}",
+          "legendFormat": "{{node_type}} {{version}}",
+          "refId": "A",
+          "instant": true
+        }
+      ],
+      "options": {
+        "orientation": "auto",
+        "xTickLabelRotation": -45,
+        "xTickLabelMaxLength": 20,
+        "barWidth": 0.97,
+        "groupWidth": 0.7,
+        "stacking": "none",
+        "showValue": "auto",
+        "fillOpacity": 80,
+        "legend": {"displayMode": "list", "placement": "bottom", "showLegend": true},
+        "tooltip": {"mode": "multi", "sort": "none"}
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {"mode": "palette-classic"},
+          "custom": {
+            "fillOpacity": 80,
+            "lineWidth": 0,
+            "hideFrom": {"legend": false, "tooltip": false, "viz": false}
+          },
+          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]}
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 7,
+      "title": "Cache Hit Rates",
+      "description": "Percentage of ledger and node-read cache lookups served from cache. Higher is better. A sustained drop can indicate memory pressure or a cold restart.",
+      "type": "timeseries",
+      "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16},
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+          "expr": "rippled_cache_ledger_hit_rate{node_type=~\"$node_type\"}",
+          "legendFormat": "{{node_type}} Ledger Cache",
+          "interval": "30s",
+          "refId": "A"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+          "expr": "rippled_cache_node_read_hit_rate{node_type=~\"$node_type\"}",
+          "legendFormat": "{{node_type}} Node Read",
+          "interval": "30s",
+          "refId": "B"
+        }
+      ],
+      "options": {
+        "tooltip": {"mode": "multi", "sort": "none"},
+        "legend": {"displayMode": "list", "placement": "bottom", "showLegend": true}
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "custom": {
+            "lineWidth": 1, "fillOpacity": 5, "showPoints": "never",
+            "spanNulls": false, "lineInterpolation": "smooth"
+          },
+          "color": {"mode": "palette-classic"},
+          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]}
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 8,
+      "title": "DB Queue & Write Load",
+      "description": "Pending database read requests (Read Queue) and current write load. Sustained elevation indicates I/O bottleneck on the node's storage backend.",
+      "type": "timeseries",
+      "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16},
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+          "expr": "avg_over_time(rippled_db_read_queue{node_type=~\"$node_type\"}[30s])",
+          "legendFormat": "{{node_type}} Read Queue",
+          "interval": "30s",
+          "refId": "A"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+          "expr": "avg_over_time(rippled_db_write_load{node_type=~\"$node_type\"}[30s])",
+          "legendFormat": "{{node_type}} Write Load",
+          "interval": "30s",
+          "refId": "B"
+        }
+      ],
+      "options": {
+        "tooltip": {"mode": "multi", "sort": "none"},
+        "legend": {"displayMode": "list", "placement": "bottom", "showLegend": true}
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "lineWidth": 1, "fillOpacity": 5, "showPoints": "never",
+            "spanNulls": false, "lineInterpolation": "smooth",
+            "axisLabel": "requests"
+          },
+          "color": {"mode": "palette-classic"},
+          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]}
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 9,
+      "title": "IO Latency",
+      "description": "Time rippled waits on I/O operations in milliseconds. Values consistently above 1ms suggest storage or system I/O bottleneck.",
+      "type": "timeseries",
+      "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+      "gridPos": {"h": 8, "w": 6, "x": 0, "y": 24},
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+          "expr": "avg_over_time(rippled_io_latency_ms{node_type=~\"$node_type\"}[30s])",
+          "legendFormat": "{{node_type}}",
+          "interval": "30s",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "tooltip": {"mode": "multi", "sort": "none"},
+        "legend": {"displayMode": "list", "placement": "bottom", "showLegend": true}
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "custom": {
+            "lineWidth": 1, "fillOpacity": 5, "showPoints": "never",
+            "spanNulls": false, "lineInterpolation": "smooth"
+          },
+          "color": {"mode": "palette-classic"},
+          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]}
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 10,
+      "title": "Load Factor",
+      "description": "Load factor components. Network = fee-scaling load broadcast to peers. Server = this node's own local load. Fee Escalation > 1 means transaction fees are being artificially inflated. Fee Queue > 1 means the transaction queue is adding pressure on fees.",
+      "type": "timeseries",
+      "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+      "gridPos": {"h": 8, "w": 6, "x": 6, "y": 24},
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+          "expr": "avg_over_time(rippled_load_factor{node_type=~\"$node_type\"}[30s])",
+          "legendFormat": "{{node_type}} network",
+          "interval": "30s",
+          "refId": "A"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+          "expr": "avg_over_time(rippled_load_factor_server{node_type=~\"$node_type\"}[30s])",
+          "legendFormat": "{{node_type}} server",
+          "interval": "30s",
+          "refId": "B"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+          "expr": "avg_over_time(rippled_load_factor_fee_escalation{node_type=~\"$node_type\"}[30s])",
+          "legendFormat": "{{node_type}} fee_escalation",
+          "interval": "30s",
+          "refId": "C"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+          "expr": "avg_over_time(rippled_load_factor_fee_queue{node_type=~\"$node_type\"}[30s])",
+          "legendFormat": "{{node_type}} fee_queue",
+          "interval": "30s",
+          "refId": "D"
+        }
+      ],
+      "options": {
+        "tooltip": {"mode": "multi", "sort": "none"},
+        "legend": {"displayMode": "list", "placement": "bottom", "showLegend": true}
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "lineWidth": 1, "fillOpacity": 5, "showPoints": "never",
+            "spanNulls": false, "lineInterpolation": "smooth",
+            "axisLabel": "factor (1 = no load)"
+          },
+          "color": {"mode": "palette-classic"},
+          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]}
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 11,
+      "title": "Load Threads",
+      "description": "Number of threads active in rippled's job scheduler. Increasing thread count under load is normal. Continuously maxed-out threads may indicate processing backlog.",
+      "type": "timeseries",
+      "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+      "gridPos": {"h": 8, "w": 6, "x": 12, "y": 24},
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+          "expr": "avg_over_time(rippled_load_threads{node_type=~\"$node_type\"}[30s])",
+          "legendFormat": "{{node_type}}",
+          "interval": "30s",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "tooltip": {"mode": "multi", "sort": "none"},
+        "legend": {"displayMode": "list", "placement": "bottom", "showLegend": true}
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "lineWidth": 1, "fillOpacity": 5, "showPoints": "never",
+            "spanNulls": false, "lineInterpolation": "smooth",
+            "axisLabel": "threads"
+          },
+          "color": {"mode": "palette-classic"},
+          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]}
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 12,
+      "title": "Transaction Queue Overflow",
+      "description": "Transactions rejected because the queue was full since rippled startup. Any non-zero value means clients are being turned away — indicates sustained congestion.",
+      "type": "timeseries",
+      "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+      "gridPos": {"h": 8, "w": 6, "x": 18, "y": 24},
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+          "expr": "rippled_transaction_overflow{node_type=~\"$node_type\"}",
+          "legendFormat": "{{node_type}}",
+          "interval": "30s",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "tooltip": {"mode": "multi", "sort": "none"},
+        "legend": {"displayMode": "list", "placement": "bottom", "showLegend": true}
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "lineWidth": 1, "fillOpacity": 5, "showPoints": "never",
+            "spanNulls": false, "lineInterpolation": "smooth",
+            "axisLabel": "transactions dropped"
+          },
+          "color": {"mode": "palette-classic"},
+          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]}
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 13,
+      "title": "Uptime",
+      "description": "Time since rippled last started. A reset indicates a restart.",
+      "type": "stat",
+      "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+      "gridPos": {"h": 8, "w": 6, "x": 0, "y": 32},
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+          "expr": "rippled_uptime_seconds{node_type=~\"$node_type\"}",
+          "legendFormat": "{{node_type}}",
+          "refId": "A",
+          "instant": true
+        }
+      ],
+      "options": {
+        "reduceOptions": {"values": false, "calcs": ["lastNotNull"], "fields": ""},
+        "orientation": "auto", "textMode": "auto", "colorMode": "none",
+        "graphMode": "none", "justifyMode": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [],
+          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]},
+          "color": {"mode": "thresholds"},
+          "unit": "s"
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 14,
+      "title": "Peer Disconnects / min",
+      "description": "Rate of peer disconnects per minute derived from rippled's cumulative counter. Baseline churn of ~1–2/min is normal. Sustained spikes may indicate network instability or resource pressure.",
+      "type": "timeseries",
+      "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+      "gridPos": {"h": 8, "w": 18, "x": 6, "y": 32},
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+          "expr": "rate(rippled_peer_disconnects_total{node_type=~\"$node_type\"}[2m]) * 60",
+          "legendFormat": "{{node_type}}",
+          "interval": "30s",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "tooltip": {"mode": "multi", "sort": "none"},
+        "legend": {"displayMode": "list", "placement": "bottom", "showLegend": true}
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "lineWidth": 1, "fillOpacity": 5, "showPoints": "never",
+            "spanNulls": false, "lineInterpolation": "smooth",
+            "axisLabel": "disconnects / min"
+          },
+          "color": {"mode": "palette-classic"},
+          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]}
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 15,
+      "title": "Endpoint Scrape Success",
+      "description": "Per-endpoint scrape health. OK = exporter successfully called that rippled RPC method last cycle. FAIL = the call errored or timed out.",
+      "type": "stat",
+      "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 40},
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+          "expr": "rippled_endpoint_scrape_success{node_type=~\"$node_type\"}",
+          "legendFormat": "{{node_type}} / {{endpoint}}",
+          "refId": "A",
+          "instant": true
+        }
+      ],
+      "options": {
+        "reduceOptions": {"values": false, "calcs": ["lastNotNull"], "fields": ""},
+        "orientation": "auto", "textMode": "auto", "colorMode": "background",
+        "graphMode": "none", "justifyMode": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {"text": "FAIL", "color": "red", "index": 0},
+                "1": {"text": "OK", "color": "green", "index": 1}
+              }
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [{"color": "red", "value": null}, {"color": "green", "value": 1}]
+          },
+          "color": {"mode": "thresholds"}
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 16,
+      "title": "Scrape Duration",
+      "description": "Time taken to complete one full scrape cycle across all rippled RPC endpoints. Spikes here do not affect Prometheus scrape timeouts but indicate rippled is slow to respond.",
+      "type": "timeseries",
+      "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 40},
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+          "expr": "rippled_scrape_duration_seconds{node_type=~\"$node_type\"}",
+          "legendFormat": "{{node_type}}",
+          "interval": "30s",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "tooltip": {"mode": "multi", "sort": "none"},
+        "legend": {"displayMode": "list", "placement": "bottom", "showLegend": true}
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": {
+            "lineWidth": 1, "fillOpacity": 5, "showPoints": "never",
+            "spanNulls": false, "lineInterpolation": "smooth"
+          },
+          "color": {"mode": "palette-classic"},
+          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]}
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 18,
+      "title": "Ledger History Range",
+      "description": "Number of complete ledgers stored locally. Climbs steadily as new ledgers close, then drops sharply at each NuDB rotation cycle.",
+      "type": "timeseries",
+      "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 48},
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+          "expr": "rippled_complete_ledgers_high{node_type=~\"$node_type\"} - rippled_complete_ledgers_low{node_type=~\"$node_type\"}",
+          "legendFormat": "{{node_type}}",
+          "interval": "30s",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "tooltip": {"mode": "multi", "sort": "none"},
+        "legend": {"displayMode": "list", "placement": "bottom", "showLegend": true}
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "lineWidth": 1, "fillOpacity": 5, "showPoints": "never",
+            "spanNulls": false, "lineInterpolation": "smooth",
+            "axisLabel": "ledgers"
+          },
+          "color": {"mode": "palette-classic"},
+          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]}
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 36,
+      "title": "Ledger Fetch Activity",
+      "description": "Active: ledgers currently in the fetch queue. Incomplete: not yet fully acquired. Timeouts: cumulative fetch timeouts across all active acquisitions. Sustained incomplete > 0 or rising timeouts may indicate sync issues or network stress.",
+      "type": "timeseries",
+      "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 56},
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+          "expr": "avg_over_time(rippled_fetch_active_total{node_type=~\"$node_type\"}[30s])",
+          "legendFormat": "{{node_type}} active",
+          "interval": "30s",
+          "refId": "A"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+          "expr": "avg_over_time(rippled_fetch_incomplete_total{node_type=~\"$node_type\"}[30s])",
+          "legendFormat": "{{node_type}} incomplete",
+          "interval": "30s",
+          "refId": "B"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+          "expr": "avg_over_time(rippled_fetch_timeouts_total{node_type=~\"$node_type\"}[30s])",
+          "legendFormat": "{{node_type}} timeouts",
+          "interval": "30s",
+          "refId": "C"
+        }
+      ],
+      "options": {
+        "tooltip": {"mode": "multi", "sort": "none"},
+        "legend": {"displayMode": "list", "placement": "bottom", "showLegend": true}
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "custom": {"lineWidth": 1, "fillOpacity": 5, "showPoints": "never", "spanNulls": false, "lineInterpolation": "smooth"},
+          "color": {"mode": "palette-classic"},
+          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]}
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 19,
+      "title": "Closed vs Validated Ledger Gap",
+      "description": "Difference between the most recently closed ledger and the most recently validated ledger. Normally 0 or 1. Persistent values above 1 indicate validation is lagging behind ledger closes.",
+      "type": "timeseries",
+      "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 64},
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+          "expr": "rippled_closed_ledger_sequence{node_type=~\"$node_type\"} - rippled_ledger_sequence{node_type=~\"$node_type\"}",
+          "legendFormat": "{{node_type}}",
+          "interval": "30s",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "tooltip": {"mode": "multi", "sort": "none"},
+        "legend": {"displayMode": "list", "placement": "bottom", "showLegend": true}
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "lineWidth": 1, "fillOpacity": 5, "showPoints": "never",
+            "spanNulls": false, "lineInterpolation": "smooth",
+            "axisLabel": "ledgers"
+          },
+          "color": {"mode": "palette-classic"},
+          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]}
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 20,
+      "title": "Reserve: Base",
+      "description": "Base account reserve in XRP. Changes require an amendment.",
+      "type": "stat",
+      "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+      "gridPos": {"h": 4, "w": 6, "x": 12, "y": 64},
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+          "expr": "rippled_reserve_base_drops{node_type=~\"$node_type\"} / 1000000",
+          "legendFormat": "{{node_type}}",
+          "interval": "30s",
+          "refId": "A"
+        }
+      ],
+      "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "orientation": "auto", "textMode": "auto", "colorMode": "value", "graphMode": "none"},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "displayName": "${__field.labels.node_type} base reserve",
+          "color": {"mode": "fixed", "fixedColor": "blue"},
+          "thresholds": {"mode": "absolute", "steps": [{"color": "blue", "value": null}]}
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 21,
+      "title": "Reserve: Owner Increment",
+      "description": "Reserve increment in XRP per object owned by an account (offers, trust lines, etc.).",
+      "type": "stat",
+      "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+      "gridPos": {"h": 4, "w": 6, "x": 18, "y": 64},
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+          "expr": "rippled_reserve_inc_drops{node_type=~\"$node_type\"} / 1000000",
+          "legendFormat": "{{node_type}}",
+          "interval": "30s",
+          "refId": "A"
+        }
+      ],
+      "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "orientation": "auto", "textMode": "auto", "colorMode": "value", "graphMode": "none"},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "displayName": "${__field.labels.node_type} owner reserve",
+          "color": {"mode": "fixed", "fixedColor": "blue"},
+          "thresholds": {"mode": "absolute", "steps": [{"color": "blue", "value": null}]}
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 22,
+      "title": "State Accounting",
+      "description": "Cumulative seconds spent in each server state since startup. Use this to assess node stability — a healthy node spends nearly all time in 'full' or 'proposing'.",
+      "type": "timeseries",
+      "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 68},
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+          "expr": "rippled_state_accounting_duration_seconds{node_type=~\"$node_type\"}",
+          "legendFormat": "{{node_type}} {{state}}",
+          "interval": "30s",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "tooltip": {"mode": "multi", "sort": "none"},
+        "legend": {"displayMode": "list", "placement": "bottom", "showLegend": true}
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": {
+            "lineWidth": 1, "fillOpacity": 5, "showPoints": "never",
+            "spanNulls": false, "lineInterpolation": "smooth"
+          },
+          "color": {"mode": "palette-classic"},
+          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]}
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 23,
+      "title": "State Transitions",
+      "description": "Number of times the node has transitioned into each server state since startup. Frequent transitions into syncing/connected indicate instability.",
+      "type": "timeseries",
+      "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 72},
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+          "expr": "rippled_state_accounting_transitions{node_type=~\"$node_type\"}",
+          "legendFormat": "{{node_type}} {{state}}",
+          "interval": "30s",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "tooltip": {"mode": "multi", "sort": "none"},
+        "legend": {"displayMode": "list", "placement": "bottom", "showLegend": true}
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "lineWidth": 1, "fillOpacity": 5, "showPoints": "never",
+            "spanNulls": false, "lineInterpolation": "smooth"
+          },
+          "color": {"mode": "palette-classic"},
+          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]}
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 24,
+      "title": "Validator List Site Health",
+      "description": "Fetch status per validator list site over time. Green = OK (accepted or same_sequence), red = failed. A failed fetch doesn't immediately affect validation but will cause issues when the current list expires.",
+      "type": "status-history",
+      "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 72},
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+          "expr": "rippled_validator_list_site_status{node_type=~\"$node_type\"}",
+          "legendFormat": "{{node_type}} {{uri}}",
+          "interval": "30s",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "mergeValues": false,
+        "showValue": "auto",
+        "alignValue": "center",
+        "rowHeight": 0.9,
+        "colWidth": 0.9,
+        "legend": {"displayMode": "list", "placement": "bottom", "showLegend": false},
+        "tooltip": {"mode": "single", "sort": "none"}
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "custom": {
+            "lineWidth": 0,
+            "fillOpacity": 70,
+            "hideFrom": {"legend": false, "tooltip": false, "viz": false}
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "red", "value": null},
+              {"color": "green", "value": 1}
+            ]
+          },
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {"text": "FAIL", "color": "red", "index": 0},
+                "1": {"text": "OK", "color": "green", "index": 1}
+              }
+            }
+          ]
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 25,
+      "title": "Server State Duration",
+      "description": "How long the node has been in its current server state. Sustained time outside full/proposing/validating indicates a sync or consensus issue.",
+      "type": "timeseries",
+      "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 80},
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+          "expr": "avg_over_time(rippled_server_state_duration_seconds{node_type=~\"$node_type\"}[30s])",
+          "legendFormat": "{{node_type}}",
+          "interval": "30s",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "tooltip": {"mode": "multi", "sort": "none"},
+        "legend": {"displayMode": "list", "placement": "bottom", "showLegend": true}
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": {"lineWidth": 1, "fillOpacity": 5, "showPoints": "never", "spanNulls": false, "lineInterpolation": "smooth"},
+          "color": {"mode": "palette-classic"},
+          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]}
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 26,
+      "title": "Non-sane Peers",
+      "description": "Number of connected peers with non-sane status (insane or unknown). Should always be 0. Non-zero values indicate peers behaving unexpectedly.",
+      "type": "timeseries",
+      "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 80},
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+          "expr": "avg_over_time(rippled_peer_non_sane_total{node_type=~\"$node_type\"}[30s])",
+          "legendFormat": "{{node_type}}",
+          "interval": "30s",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "tooltip": {"mode": "multi", "sort": "none"},
+        "legend": {"displayMode": "list", "placement": "bottom", "showLegend": true}
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "custom": {"lineWidth": 1, "fillOpacity": 10, "showPoints": "never", "spanNulls": false, "lineInterpolation": "smooth"},
+          "color": {"mode": "palette-classic"},
+          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "red", "value": 1}]}
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 27,
+      "title": "Database Sizes",
+      "description": "NuDB/RocksDB on-disk size in KB for the ledger store and transaction store. Monitor for growth to plan storage capacity.",
+      "type": "timeseries",
+      "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 88},
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+          "expr": "avg_over_time(rippled_db_size_kb{node_type=~\"$node_type\", database=\"ledger\"}[30s])",
+          "legendFormat": "{{node_type}} ledger",
+          "interval": "30s",
+          "refId": "A"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+          "expr": "avg_over_time(rippled_db_size_kb{node_type=~\"$node_type\", database=\"transaction\"}[30s])",
+          "legendFormat": "{{node_type}} transaction",
+          "interval": "30s",
+          "refId": "B"
+        }
+      ],
+      "options": {
+        "tooltip": {"mode": "multi", "sort": "none"},
+        "legend": {"displayMode": "list", "placement": "bottom", "showLegend": true}
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "kbytes",
+          "custom": {"lineWidth": 1, "fillOpacity": 5, "showPoints": "never", "spanNulls": false, "lineInterpolation": "smooth"},
+          "color": {"mode": "palette-classic"},
+          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]}
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 28,
+      "title": "DB Read / Write Ops",
+      "description": "Rate of read and write operations to the NuDB/RocksDB object store. High write rates under sustained load are normal. Unexpected spikes may indicate replay or resync activity.",
+      "type": "timeseries",
+      "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 88},
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+          "expr": "rate(rippled_db_node_reads_total{node_type=~\"$node_type\"}[30s])",
+          "legendFormat": "{{node_type}} reads/s",
+          "interval": "30s",
+          "refId": "A"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+          "expr": "rate(rippled_db_node_writes_total{node_type=~\"$node_type\"}[30s])",
+          "legendFormat": "{{node_type}} writes/s",
+          "interval": "30s",
+          "refId": "B"
+        }
+      ],
+      "options": {
+        "tooltip": {"mode": "multi", "sort": "none"},
+        "legend": {"displayMode": "list", "placement": "bottom", "showLegend": true}
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops",
+          "custom": {"lineWidth": 1, "fillOpacity": 5, "showPoints": "never", "spanNulls": false, "lineInterpolation": "smooth"},
+          "color": {"mode": "palette-classic"},
+          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]}
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 30,
+      "title": "UNL Size",
+      "description": "Number of trusted validators in the UNL (Unique Node List). Compare against validation_quorum to understand headroom.",
+      "type": "stat",
+      "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+      "gridPos": {"h": 4, "w": 12, "x": 0, "y": 96},
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+          "expr": "rippled_unl_size{node_type=~\"$node_type\"}",
+          "legendFormat": "{{node_type}}",
+          "refId": "A",
+          "instant": true
+        }
+      ],
+      "options": {
+        "reduceOptions": {"values": false, "calcs": ["lastNotNull"], "fields": ""},
+        "orientation": "auto", "textMode": "auto", "colorMode": "value",
+        "graphMode": "none", "justifyMode": "center"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]},
+          "color": {"mode": "thresholds"},
+          "mappings": []
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 31,
+      "title": "Validations Cached",
+      "description": "Number of validator signatures currently held in the validation cache.",
+      "type": "stat",
+      "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+      "gridPos": {"h": 4, "w": 12, "x": 12, "y": 96},
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+          "expr": "rippled_validations_cached{node_type=~\"$node_type\"}",
+          "legendFormat": "{{node_type}}",
+          "refId": "A",
+          "instant": true
+        }
+      ],
+      "options": {
+        "reduceOptions": {"values": false, "calcs": ["lastNotNull"], "fields": ""},
+        "orientation": "auto", "textMode": "auto", "colorMode": "value",
+        "graphMode": "none", "justifyMode": "center"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]},
+          "color": {"mode": "thresholds"},
+          "mappings": []
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 32,
+      "title": "Amendments Enabled",
+      "description": "Total number of amendments currently active on this network.",
+      "type": "stat",
+      "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+      "gridPos": {"h": 4, "w": 8, "x": 0, "y": 100},
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+          "expr": "rippled_amendments_enabled_total{node_type=~\"$node_type\"}",
+          "legendFormat": "{{node_type}}",
+          "refId": "A",
+          "instant": true
+        }
+      ],
+      "options": {
+        "reduceOptions": {"values": false, "calcs": ["lastNotNull"], "fields": ""},
+        "orientation": "auto", "textMode": "auto", "colorMode": "value",
+        "graphMode": "none", "justifyMode": "center"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]},
+          "color": {"mode": "thresholds"},
+          "mappings": []
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 33,
+      "title": "Amendments Pending",
+      "description": "Amendments that have reached the voting threshold and are in the 2-week activation window. Non-zero means a network upgrade is imminent — ensure rippled is up to date.",
+      "type": "stat",
+      "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+      "gridPos": {"h": 4, "w": 8, "x": 8, "y": 100},
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+          "expr": "rippled_amendments_pending_total{node_type=~\"$node_type\"}",
+          "legendFormat": "{{node_type}}",
+          "refId": "A",
+          "instant": true
+        }
+      ],
+      "options": {
+        "reduceOptions": {"values": false, "calcs": ["lastNotNull"], "fields": ""},
+        "orientation": "auto", "textMode": "auto", "colorMode": "background",
+        "graphMode": "none", "justifyMode": "center"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "orange", "value": 1}]},
+          "color": {"mode": "thresholds"},
+          "mappings": []
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 34,
+      "title": "Amendments Near Threshold",
+      "description": "Amendments with >= 75% of required votes but not yet at the activation threshold. Monitor these to anticipate upcoming network changes.",
+      "type": "stat",
+      "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+      "gridPos": {"h": 4, "w": 8, "x": 16, "y": 100},
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+          "expr": "rippled_amendments_near_threshold_total{node_type=~\"$node_type\"}",
+          "legendFormat": "{{node_type}}",
+          "refId": "A",
+          "instant": true
+        }
+      ],
+      "options": {
+        "reduceOptions": {"values": false, "calcs": ["lastNotNull"], "fields": ""},
+        "orientation": "auto", "textMode": "auto", "colorMode": "background",
+        "graphMode": "none", "justifyMode": "center"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 1}]},
+          "color": {"mode": "thresholds"},
+          "mappings": []
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 17,
+      "title": "Last Scrape Success Age",
+      "description": "Seconds since the last fully successful scrape. Spikes indicate the exporter is failing to reach rippled.",
+      "type": "timeseries",
+      "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 104},
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+          "expr": "time() - rippled_last_scrape_success_timestamp_seconds{node_type=~\"$node_type\"}",
+          "legendFormat": "{{node_type}}",
+          "interval": "30s",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "tooltip": {"mode": "multi", "sort": "none"},
+        "legend": {"displayMode": "list", "placement": "bottom", "showLegend": true}
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": {
+            "lineWidth": 1, "fillOpacity": 5, "showPoints": "never",
+            "spanNulls": false, "lineInterpolation": "smooth"
+          },
+          "color": {"mode": "palette-classic"},
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "yellow", "value": 10},
+              {"color": "red", "value": 30}
+            ]
+          }
+        },
+        "overrides": []
+      }
+    }
+  ],
+  "time": {"from": "now-6h", "to": "now"},
+  "timepicker": {},
+  "annotations": {"list": []},
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "links": [],
+  "liveNow": false,
+  "weekStart": ""
+}
