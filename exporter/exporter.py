@@ -28,7 +28,7 @@ from typing import Any
 import requests
 from prometheus_client import Counter as PromCounter, Gauge, start_http_server
 
-__version__ = "1.1.0"
+__version__ = "1.2.0"
 
 logging.basicConfig(
     level=logging.INFO,
@@ -1418,7 +1418,8 @@ def main() -> None:
     parser.parse_args()
 
     logger.info(
-        "Starting rippled exporter for node_type=%s on port=%d scraping=%s interval=%ds",
+        "Starting rippled exporter v%s for node_type=%s on port=%d scraping=%s interval=%ds",
+        __version__,
         NODE_TYPE,
         METRICS_PORT,
         RIPPLED_URL,
