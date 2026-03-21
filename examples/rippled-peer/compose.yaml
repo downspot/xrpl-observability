@@ -1,6 +1,6 @@
 services:
   rippled:
-    image: your-rippled-image:latest  # replace with your rippled Docker image
+    image: xrpllabsofficial/xrpld:latest
     container_name: rippled-peer
     restart: unless-stopped
     volumes:
