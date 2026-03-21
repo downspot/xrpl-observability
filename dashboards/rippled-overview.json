@@ -414,26 +414,19 @@
             "spanNulls": false,
             "hideFrom": {"legend": false, "tooltip": false, "viz": false}
           },
-          "color": {"mode": "thresholds"},
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {"color": "red", "value": null},
-              {"color": "yellow", "value": 1},
-              {"color": "green", "value": 4}
-            ]
-          },
+          "color": {"mode": "fixed", "fixedColor": "green"},
+          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]},
           "mappings": [
             {
               "type": "value",
               "options": {
-                "0": {"text": "Disconnected", "color": "red", "index": 0},
+                "0": {"text": "Disconnected", "color": "dark-red", "index": 0},
                 "1": {"text": "Connected", "color": "yellow", "index": 1},
                 "2": {"text": "Syncing", "color": "yellow", "index": 2},
                 "3": {"text": "Tracking", "color": "yellow", "index": 3},
                 "4": {"text": "Full", "color": "green", "index": 4},
                 "5": {"text": "Validating", "color": "green", "index": 5},
-                "6": {"text": "Proposing", "color": "green", "index": 6}
+                "6": {"text": "Proposing", "color": "dark-green", "index": 6}
               }
             }
           ]
