@@ -61,9 +61,7 @@ One exporter instance runs per rippled node. Each exporter shares its target nod
 | `rippled_ledger_sequence` | Gauge | Current validated ledger sequence |
 | `rippled_ledger_age_seconds` | Gauge | Age of last validated ledger |
 | `rippled_complete_ledgers_low` | Gauge | Lowest sequence in the node's complete ledger range (0 if empty) |
-| `rippled_complete_ledgers_high` | Gauge | Highest sequence in the node's complete ledger range (0 if empty) |
-
-Use `rippled_complete_ledgers_high - rippled_complete_ledgers_low` in Grafana to graph the range size — it climbs steadily as ledgers accumulate and drops sharply at each NuDB rotation cycle.
+| `rippled_complete_ledgers_high` | Gauge | Highest sequence in the node's complete ledger range (0 if empty). Use `high - low` in Grafana to graph range size — climbs steadily and drops sharply at each NuDB rotation cycle. |
 | `rippled_load_factor` | Gauge | Load multiplier (1 = no load) |
 | `rippled_uptime_seconds` | Gauge | Node uptime |
 | `rippled_io_latency_ms` | Gauge | I/O latency reported by rippled |
