@@ -186,6 +186,8 @@ Both dashboards use a `${PROMETHEUS}` datasource placeholder and will prompt for
 
 ### rippled Overview (`rippled-overview.json`)
 
+![rippled Overview](screenshots/overview.png)
+
 22 panels — health at a glance. Default time range: 6h / 30s refresh.
 
 - Node state, peers, quorum, validator list, UNL expiry, manifest seq, build version
@@ -198,21 +200,24 @@ Both dashboards use a `${PROMETHEUS}` datasource placeholder and will prompt for
 
 ### rippled Deep Dive (`rippled-deep-dive.json`)
 
+![rippled Deep Dive — Top](screenshots/detailed-top.png)
+![rippled Deep Dive — Middle](screenshots/detailed-middle.png)
+![rippled Deep Dive — Bottom](screenshots/detailed-bottom.png)
+
 34 panels — detailed analysis. Default time range: 6h / 30s refresh.
 
 - Inbound vs outbound peers, peer latency (capped at 500ms), consensus disputes
 - Network fees (base / median / open ledger), transaction queue, version spread (bar chart)
 - Cache hit rates, DB queue & write load
 - I/O latency, load factor (network + server + fee escalation + fee queue), load threads, transaction queue overflow
-- Ledger History Range (range size — climbs steadily and drops at each NuDB rotation)
 - Ledger Fetch Activity (active/incomplete fetches, cumulative timeouts)
-- Closed vs Validated Ledger Gap, Reserves (base + owner increment in XRP)
-- State Accounting duration and transitions (cumulative time and count per server state)
-- Validator List Site Health (per-site fetch status as status-history grid)
-- Server State Duration, Non-sane Peers
-- Database Sizes (ledger + transaction store KB), DB Read/Write Ops rate
-- Job Queue (deferred + in-progress totals), UNL Size, Validations Cached
-- Amendments Enabled / Pending / Near Threshold
+- Ledger Age, Reserves (base + owner increment in XRP)
+- State Accounting (cumulative time in non-full states), State Transitions (rate of transitions per minute)
+- Validator List Site Health (current UP/DOWN status per site), Non-sane Peers
+- Ledger History Range (range size — climbs steadily and drops at each NuDB rotation)
+- Load Factor (network + server + fee escalation + fee queue, full-width)
+- Database Sizes, DB Read/Write Ops rate
+- UNL Size, Validations Cached, Validation Quorum, Amendments Enabled / Pending / Near Threshold
 - Peer disconnects/min, uptime, exporter health (endpoint scrape success, scrape duration, last success age)
 
 ### Template Variable

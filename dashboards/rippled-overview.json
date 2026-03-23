@@ -10,11 +10,19 @@
     }
   ],
   "__requires": [
-    {"type": "datasource", "id": "prometheus", "name": "Prometheus", "version": "1.0.0"}
+    {
+      "type": "datasource",
+      "id": "prometheus",
+      "name": "Prometheus",
+      "version": "1.0.0"
+    }
   ],
   "uid": "rippled-overview",
   "title": "XRPL rippled Overview",
-  "tags": ["rippled", "xrpl"],
+  "tags": [
+    "rippled",
+    "xrpl"
+  ],
   "timezone": "browser",
   "schemaVersion": 38,
   "version": 1,
@@ -25,9 +33,15 @@
         "name": "node_type",
         "label": "Node Type",
         "type": "query",
-        "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${PROMETHEUS}"
+        },
         "definition": "label_values(rippled_server_state, node_type)",
-        "query": {"query": "label_values(rippled_server_state, node_type)", "refId": "StandardVariableQuery"},
+        "query": {
+          "query": "label_values(rippled_server_state, node_type)",
+          "refId": "StandardVariableQuery"
+        },
         "refresh": 2,
         "multi": true,
         "includeAll": true,
@@ -43,11 +57,22 @@
       "id": 1,
       "title": "Node State",
       "type": "stat",
-      "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
-      "gridPos": {"h": 4, "w": 4, "x": 0, "y": 0},
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 0,
+        "y": 0
+      },
       "targets": [
         {
-          "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${PROMETHEUS}"
+          },
           "expr": "rippled_server_state{node_type=~\"$node_type\"}",
           "legendFormat": "{{node_type}}",
           "refId": "A",
@@ -55,9 +80,18 @@
         }
       ],
       "options": {
-        "reduceOptions": {"values": false, "calcs": ["lastNotNull"], "fields": ""},
-        "orientation": "auto", "textMode": "auto", "colorMode": "background",
-        "graphMode": "none", "justifyMode": "auto"
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto"
       },
       "fieldConfig": {
         "defaults": {
@@ -65,18 +99,56 @@
             {
               "type": "value",
               "options": {
-                "0": {"text": "Disconnected", "color": "red", "index": 0},
-                "1": {"text": "Connected", "color": "yellow", "index": 1},
-                "2": {"text": "Syncing", "color": "yellow", "index": 2},
-                "3": {"text": "Tracking", "color": "yellow", "index": 3},
-                "4": {"text": "Full", "color": "green", "index": 4},
-                "5": {"text": "Validating", "color": "green", "index": 5},
-                "6": {"text": "Proposing", "color": "green", "index": 6}
+                "0": {
+                  "text": "Disconnected",
+                  "color": "red",
+                  "index": 0
+                },
+                "1": {
+                  "text": "Connected",
+                  "color": "yellow",
+                  "index": 1
+                },
+                "2": {
+                  "text": "Syncing",
+                  "color": "yellow",
+                  "index": 2
+                },
+                "3": {
+                  "text": "Tracking",
+                  "color": "yellow",
+                  "index": 3
+                },
+                "4": {
+                  "text": "Full",
+                  "color": "green",
+                  "index": 4
+                },
+                "5": {
+                  "text": "Validating",
+                  "color": "green",
+                  "index": 5
+                },
+                "6": {
+                  "text": "Proposing",
+                  "color": "green",
+                  "index": 6
+                }
               }
             }
           ],
-          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]},
-          "color": {"mode": "thresholds"}
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          }
         },
         "overrides": []
       }
@@ -85,11 +157,22 @@
       "id": 2,
       "title": "Connected Peers",
       "type": "stat",
-      "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
-      "gridPos": {"h": 4, "w": 4, "x": 4, "y": 0},
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 4,
+        "y": 0
+      },
       "targets": [
         {
-          "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${PROMETHEUS}"
+          },
           "expr": "rippled_peers_total{node_type=~\"$node_type\"}",
           "legendFormat": "{{node_type}}",
           "refId": "A",
@@ -97,15 +180,34 @@
         }
       ],
       "options": {
-        "reduceOptions": {"values": false, "calcs": ["lastNotNull"], "fields": ""},
-        "orientation": "auto", "textMode": "auto", "colorMode": "background",
-        "graphMode": "none", "justifyMode": "auto"
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto"
       },
       "fieldConfig": {
         "defaults": {
           "mappings": [],
-          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]},
-          "color": {"mode": "thresholds"}
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          }
         },
         "overrides": []
       }
@@ -114,11 +216,22 @@
       "id": 3,
       "title": "Validation Quorum",
       "type": "stat",
-      "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
-      "gridPos": {"h": 4, "w": 4, "x": 8, "y": 0},
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 8,
+        "y": 0
+      },
       "targets": [
         {
-          "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${PROMETHEUS}"
+          },
           "expr": "rippled_validation_quorum{node_type=~\"$node_type\"}",
           "legendFormat": "{{node_type}}",
           "refId": "A",
@@ -126,15 +239,34 @@
         }
       ],
       "options": {
-        "reduceOptions": {"values": false, "calcs": ["lastNotNull"], "fields": ""},
-        "orientation": "auto", "textMode": "auto", "colorMode": "value",
-        "graphMode": "none", "justifyMode": "auto"
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto"
       },
       "fieldConfig": {
         "defaults": {
           "mappings": [],
-          "thresholds": {"mode": "absolute", "steps": [{"color": "blue", "value": null}]},
-          "color": {"mode": "thresholds"}
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          }
         },
         "overrides": []
       }
@@ -143,11 +275,22 @@
       "id": 4,
       "title": "Validator List",
       "type": "stat",
-      "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
-      "gridPos": {"h": 4, "w": 4, "x": 12, "y": 0},
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 12,
+        "y": 0
+      },
       "targets": [
         {
-          "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${PROMETHEUS}"
+          },
           "expr": "rippled_validator_list_active{node_type=~\"$node_type\"}",
           "legendFormat": "{{node_type}}",
           "refId": "A",
@@ -155,9 +298,18 @@
         }
       ],
       "options": {
-        "reduceOptions": {"values": false, "calcs": ["lastNotNull"], "fields": ""},
-        "orientation": "auto", "textMode": "auto", "colorMode": "background",
-        "graphMode": "none", "justifyMode": "auto"
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto"
       },
       "fieldConfig": {
         "defaults": {
@@ -165,13 +317,31 @@
             {
               "type": "value",
               "options": {
-                "0": {"text": "Inactive", "color": "red", "index": 0},
-                "1": {"text": "Active", "color": "green", "index": 1}
+                "0": {
+                  "text": "Inactive",
+                  "color": "red",
+                  "index": 0
+                },
+                "1": {
+                  "text": "Active",
+                  "color": "green",
+                  "index": 1
+                }
               }
             }
           ],
-          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]},
-          "color": {"mode": "thresholds"}
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          }
         },
         "overrides": []
       }
@@ -180,11 +350,22 @@
       "id": 5,
       "title": "UNL Expiry",
       "type": "stat",
-      "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
-      "gridPos": {"h": 4, "w": 4, "x": 16, "y": 0},
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 16,
+        "y": 0
+      },
       "targets": [
         {
-          "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${PROMETHEUS}"
+          },
           "expr": "rippled_validator_list_expiry_timestamp{node_type=~\"$node_type\"} - time()",
           "legendFormat": "{{node_type}}",
           "refId": "A",
@@ -192,9 +373,18 @@
         }
       ],
       "options": {
-        "reduceOptions": {"values": false, "calcs": ["lastNotNull"], "fields": ""},
-        "orientation": "auto", "textMode": "auto", "colorMode": "background",
-        "graphMode": "none", "justifyMode": "auto"
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto"
       },
       "fieldConfig": {
         "defaults": {
@@ -202,12 +392,23 @@
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              {"color": "red", "value": null},
-              {"color": "yellow", "value": 2592000},
-              {"color": "green", "value": 5184000}
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 2592000
+              },
+              {
+                "color": "green",
+                "value": 5184000
+              }
             ]
           },
-          "color": {"mode": "thresholds"},
+          "color": {
+            "mode": "thresholds"
+          },
           "unit": "s"
         },
         "overrides": []
@@ -217,11 +418,22 @@
       "id": 6,
       "title": "Validator Manifest Seq",
       "type": "stat",
-      "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
-      "gridPos": {"h": 4, "w": 4, "x": 20, "y": 0},
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 20,
+        "y": 0
+      },
       "targets": [
         {
-          "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${PROMETHEUS}"
+          },
           "expr": "rippled_validator_manifest_seq{node_type=~\"$node_type\"}",
           "legendFormat": "{{node_type}}",
           "refId": "A",
@@ -229,15 +441,34 @@
         }
       ],
       "options": {
-        "reduceOptions": {"values": false, "calcs": ["lastNotNull"], "fields": ""},
-        "orientation": "auto", "textMode": "auto", "colorMode": "value",
-        "graphMode": "none", "justifyMode": "auto"
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto"
       },
       "fieldConfig": {
         "defaults": {
           "mappings": [],
-          "thresholds": {"mode": "absolute", "steps": [{"color": "blue", "value": null}]},
-          "color": {"mode": "thresholds"}
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          }
         },
         "overrides": []
       }
@@ -246,11 +477,22 @@
       "id": 7,
       "title": "Build Version",
       "type": "stat",
-      "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
-      "gridPos": {"h": 4, "w": 6, "x": 0, "y": 4},
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 0,
+        "y": 4
+      },
       "targets": [
         {
-          "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${PROMETHEUS}"
+          },
           "expr": "rippled_build_info{node_type=~\"$node_type\"}",
           "legendFormat": "{{node_type}}: {{version}}",
           "refId": "A",
@@ -258,15 +500,34 @@
         }
       ],
       "options": {
-        "reduceOptions": {"values": false, "calcs": ["lastNotNull"], "fields": ""},
-        "orientation": "auto", "textMode": "name", "colorMode": "none",
-        "graphMode": "none", "justifyMode": "auto"
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "orientation": "auto",
+        "textMode": "name",
+        "colorMode": "none",
+        "graphMode": "none",
+        "justifyMode": "auto"
       },
       "fieldConfig": {
         "defaults": {
           "mappings": [],
-          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]},
-          "color": {"mode": "thresholds"}
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          }
         },
         "overrides": []
       }
@@ -275,11 +536,22 @@
       "id": 8,
       "title": "Proposing",
       "type": "stat",
-      "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
-      "gridPos": {"h": 4, "w": 6, "x": 6, "y": 4},
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 6,
+        "y": 4
+      },
       "targets": [
         {
-          "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${PROMETHEUS}"
+          },
           "expr": "rippled_consensus_proposing{node_type=~\"$node_type\"}",
           "legendFormat": "{{node_type}}",
           "refId": "A",
@@ -287,9 +559,18 @@
         }
       ],
       "options": {
-        "reduceOptions": {"values": false, "calcs": ["lastNotNull"], "fields": ""},
-        "orientation": "auto", "textMode": "auto", "colorMode": "background",
-        "graphMode": "none", "justifyMode": "auto"
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto"
       },
       "fieldConfig": {
         "defaults": {
@@ -297,13 +578,31 @@
             {
               "type": "value",
               "options": {
-                "0": {"text": "No", "color": "red", "index": 0},
-                "1": {"text": "Yes", "color": "green", "index": 1}
+                "0": {
+                  "text": "No",
+                  "color": "red",
+                  "index": 0
+                },
+                "1": {
+                  "text": "Yes",
+                  "color": "green",
+                  "index": 1
+                }
               }
             }
           ],
-          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]},
-          "color": {"mode": "thresholds"}
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          }
         },
         "overrides": []
       }
@@ -312,11 +611,22 @@
       "id": 9,
       "title": "Synched",
       "type": "stat",
-      "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
-      "gridPos": {"h": 4, "w": 6, "x": 12, "y": 4},
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 12,
+        "y": 4
+      },
       "targets": [
         {
-          "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${PROMETHEUS}"
+          },
           "expr": "rippled_consensus_synched{node_type=~\"$node_type\"}",
           "legendFormat": "{{node_type}}",
           "refId": "A",
@@ -324,9 +634,18 @@
         }
       ],
       "options": {
-        "reduceOptions": {"values": false, "calcs": ["lastNotNull"], "fields": ""},
-        "orientation": "auto", "textMode": "auto", "colorMode": "background",
-        "graphMode": "none", "justifyMode": "auto"
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto"
       },
       "fieldConfig": {
         "defaults": {
@@ -334,13 +653,31 @@
             {
               "type": "value",
               "options": {
-                "0": {"text": "No", "color": "red", "index": 0},
-                "1": {"text": "Yes", "color": "green", "index": 1}
+                "0": {
+                  "text": "No",
+                  "color": "red",
+                  "index": 0
+                },
+                "1": {
+                  "text": "Yes",
+                  "color": "green",
+                  "index": 1
+                }
               }
             }
           ],
-          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]},
-          "color": {"mode": "thresholds"}
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          }
         },
         "overrides": []
       }
@@ -349,11 +686,22 @@
       "id": 10,
       "title": "Validating",
       "type": "stat",
-      "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
-      "gridPos": {"h": 4, "w": 6, "x": 18, "y": 4},
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 18,
+        "y": 4
+      },
       "targets": [
         {
-          "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${PROMETHEUS}"
+          },
           "expr": "rippled_consensus_validating{node_type=~\"$node_type\"}",
           "legendFormat": "{{node_type}}",
           "refId": "A",
@@ -361,9 +709,18 @@
         }
       ],
       "options": {
-        "reduceOptions": {"values": false, "calcs": ["lastNotNull"], "fields": ""},
-        "orientation": "auto", "textMode": "auto", "colorMode": "background",
-        "graphMode": "none", "justifyMode": "auto"
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto"
       },
       "fieldConfig": {
         "defaults": {
@@ -371,13 +728,31 @@
             {
               "type": "value",
               "options": {
-                "0": {"text": "No", "color": "red", "index": 0},
-                "1": {"text": "Yes", "color": "green", "index": 1}
+                "0": {
+                  "text": "No",
+                  "color": "red",
+                  "index": 0
+                },
+                "1": {
+                  "text": "Yes",
+                  "color": "green",
+                  "index": 1
+                }
               }
             }
           ],
-          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]},
-          "color": {"mode": "thresholds"}
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          }
         },
         "overrides": []
       }
@@ -386,12 +761,23 @@
       "id": 11,
       "title": "Server State History",
       "type": "state-timeline",
-      "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${PROMETHEUS}"
+      },
       "description": "Server state over time. Green = healthy (Full/Validating/Proposing), yellow = transitional, red = disconnected.",
-      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 8
+      },
       "targets": [
         {
-          "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${PROMETHEUS}"
+          },
           "expr": "rippled_server_state{node_type=~\"$node_type\"}",
           "legendFormat": "{{node_type}}",
           "interval": "30s",
@@ -403,8 +789,15 @@
         "showValue": "auto",
         "alignValue": "left",
         "rowHeight": 0.9,
-        "legend": {"displayMode": "list", "placement": "bottom", "showLegend": true},
-        "tooltip": {"mode": "single", "sort": "none"}
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
       },
       "fieldConfig": {
         "defaults": {
@@ -412,21 +805,64 @@
             "lineWidth": 0,
             "fillOpacity": 70,
             "spanNulls": false,
-            "hideFrom": {"legend": false, "tooltip": false, "viz": false}
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            }
           },
-          "color": {"mode": "fixed", "fixedColor": "green"},
-          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]},
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "green"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
           "mappings": [
             {
               "type": "value",
               "options": {
-                "0": {"text": "Disconnected", "color": "dark-red", "index": 0},
-                "1": {"text": "Connected", "color": "yellow", "index": 1},
-                "2": {"text": "Syncing", "color": "yellow", "index": 2},
-                "3": {"text": "Tracking", "color": "yellow", "index": 3},
-                "4": {"text": "Full", "color": "green", "index": 4},
-                "5": {"text": "Validating", "color": "green", "index": 5},
-                "6": {"text": "Proposing", "color": "dark-green", "index": 6}
+                "0": {
+                  "text": "Disconnected",
+                  "color": "dark-red",
+                  "index": 0
+                },
+                "1": {
+                  "text": "Connected",
+                  "color": "yellow",
+                  "index": 1
+                },
+                "2": {
+                  "text": "Syncing",
+                  "color": "yellow",
+                  "index": 2
+                },
+                "3": {
+                  "text": "Tracking",
+                  "color": "yellow",
+                  "index": 3
+                },
+                "4": {
+                  "text": "Full",
+                  "color": "green",
+                  "index": 4
+                },
+                "5": {
+                  "text": "Validating",
+                  "color": "green",
+                  "index": 5
+                },
+                "6": {
+                  "text": "Proposing",
+                  "color": "dark-green",
+                  "index": 6
+                }
               }
             }
           ]
@@ -438,11 +874,22 @@
       "id": 12,
       "title": "Ledger Age",
       "type": "timeseries",
-      "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
-      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 8
+      },
       "targets": [
         {
-          "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${PROMETHEUS}"
+          },
           "expr": "rippled_ledger_age_seconds{node_type=~\"$node_type\"}",
           "legendFormat": "{{node_type}}",
           "interval": "30s",
@@ -450,22 +897,43 @@
         }
       ],
       "options": {
-        "tooltip": {"mode": "multi", "sort": "none"},
-        "legend": {"displayMode": "list", "placement": "bottom", "showLegend": true}
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        }
       },
       "fieldConfig": {
         "defaults": {
           "custom": {
-            "lineWidth": 1, "fillOpacity": 5, "showPoints": "never",
-            "spanNulls": false, "lineInterpolation": "smooth"
+            "lineWidth": 1,
+            "fillOpacity": 5,
+            "showPoints": "never",
+            "spanNulls": false,
+            "lineInterpolation": "smooth"
           },
-          "color": {"mode": "palette-classic"},
+          "color": {
+            "mode": "palette-classic"
+          },
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              {"color": "green", "value": null},
-              {"color": "yellow", "value": 10},
-              {"color": "red", "value": 30}
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 10
+              },
+              {
+                "color": "red",
+                "value": 30
+              }
             ]
           },
           "unit": "s"
@@ -477,11 +945,22 @@
       "id": 13,
       "title": "Connected Peers",
       "type": "timeseries",
-      "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
-      "gridPos": {"h": 8, "w": 8, "x": 0, "y": 16},
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 16
+      },
       "targets": [
         {
-          "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${PROMETHEUS}"
+          },
           "expr": "rippled_peers_total{node_type=~\"$node_type\"}",
           "legendFormat": "{{node_type}}",
           "interval": "30s",
@@ -489,17 +968,37 @@
         }
       ],
       "options": {
-        "tooltip": {"mode": "multi", "sort": "none"},
-        "legend": {"displayMode": "list", "placement": "bottom", "showLegend": true}
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        }
       },
       "fieldConfig": {
         "defaults": {
           "custom": {
-            "lineWidth": 1, "fillOpacity": 5, "showPoints": "never",
-            "spanNulls": false, "lineInterpolation": "smooth"
+            "lineWidth": 1,
+            "fillOpacity": 5,
+            "showPoints": "never",
+            "spanNulls": false,
+            "lineInterpolation": "smooth"
           },
-          "color": {"mode": "palette-classic"},
-          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]}
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
         },
         "overrides": []
       }
@@ -508,11 +1007,22 @@
       "id": 14,
       "title": "Last Close Convergence Time",
       "type": "timeseries",
-      "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
-      "gridPos": {"h": 8, "w": 8, "x": 8, "y": 16},
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 16
+      },
       "targets": [
         {
-          "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${PROMETHEUS}"
+          },
           "expr": "avg_over_time(rippled_last_close_converge_time_seconds{node_type=~\"$node_type\"}[30s])",
           "legendFormat": "{{node_type}}",
           "interval": "30s",
@@ -520,17 +1030,37 @@
         }
       ],
       "options": {
-        "tooltip": {"mode": "multi", "sort": "none"},
-        "legend": {"displayMode": "list", "placement": "bottom", "showLegend": true}
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        }
       },
       "fieldConfig": {
         "defaults": {
           "custom": {
-            "lineWidth": 1, "fillOpacity": 5, "showPoints": "never",
-            "spanNulls": false, "lineInterpolation": "smooth"
+            "lineWidth": 1,
+            "fillOpacity": 5,
+            "showPoints": "never",
+            "spanNulls": false,
+            "lineInterpolation": "smooth"
           },
-          "color": {"mode": "palette-classic"},
-          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]},
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
           "unit": "s"
         },
         "overrides": []
@@ -540,43 +1070,98 @@
       "id": 15,
       "title": "Last Close Proposers",
       "type": "timeseries",
-      "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
-      "gridPos": {"h": 8, "w": 8, "x": 16, "y": 16},
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 16
+      },
       "targets": [
         {
-          "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${PROMETHEUS}"
+          },
           "expr": "avg_over_time(rippled_last_close_proposers{node_type=~\"$node_type\"}[30s])",
           "legendFormat": "{{node_type}}",
           "interval": "30s",
           "refId": "A"
         },
         {
-          "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${PROMETHEUS}"
+          },
           "expr": "rippled_validation_quorum{node_type=\"validator\"}",
           "legendFormat": "Quorum",
           "refId": "B"
         }
       ],
       "options": {
-        "tooltip": {"mode": "multi", "sort": "none"},
-        "legend": {"displayMode": "list", "placement": "bottom", "showLegend": true}
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        }
       },
       "fieldConfig": {
         "defaults": {
           "custom": {
-            "lineWidth": 1, "fillOpacity": 5, "showPoints": "never",
-            "spanNulls": false, "lineInterpolation": "smooth"
+            "lineWidth": 1,
+            "fillOpacity": 5,
+            "showPoints": "never",
+            "spanNulls": false,
+            "lineInterpolation": "smooth"
           },
-          "color": {"mode": "palette-classic"},
-          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]}
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
         },
         "overrides": [
           {
-            "matcher": {"id": "byFrameRefID", "options": "B"},
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "B"
+            },
             "properties": [
-              {"id": "custom.lineStyle", "value": {"fill": "dash", "dash": [10, 10]}},
-              {"id": "color", "value": {"mode": "fixed", "fixedColor": "red"}},
-              {"id": "custom.lineWidth", "value": 2}
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "fill": "dash",
+                  "dash": [
+                    10,
+                    10
+                  ]
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "red"
+                }
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 2
+              }
             ]
           }
         ]
@@ -584,13 +1169,24 @@
     },
     {
       "id": 16,
-      "title": "Uptime — validator",
+      "title": "Uptime \u2014 validator",
       "type": "stat",
-      "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
-      "gridPos": {"h": 4, "w": 12, "x": 0, "y": 24},
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 12,
+        "x": 0,
+        "y": 24
+      },
       "targets": [
         {
-          "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${PROMETHEUS}"
+          },
           "expr": "rippled_uptime_seconds{node_type=\"validator\"}",
           "legendFormat": "validator",
           "refId": "A",
@@ -598,15 +1194,34 @@
         }
       ],
       "options": {
-        "reduceOptions": {"values": false, "calcs": ["lastNotNull"], "fields": ""},
-        "orientation": "auto", "textMode": "auto", "colorMode": "none",
-        "graphMode": "none", "justifyMode": "center"
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "none",
+        "graphMode": "none",
+        "justifyMode": "center"
       },
       "fieldConfig": {
         "defaults": {
           "mappings": [],
-          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]},
-          "color": {"mode": "thresholds"},
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
           "unit": "s"
         },
         "overrides": []
@@ -614,13 +1229,24 @@
     },
     {
       "id": 17,
-      "title": "Uptime — peer",
+      "title": "Uptime \u2014 peer",
       "type": "stat",
-      "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
-      "gridPos": {"h": 4, "w": 12, "x": 12, "y": 24},
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 12,
+        "x": 12,
+        "y": 24
+      },
       "targets": [
         {
-          "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${PROMETHEUS}"
+          },
           "expr": "rippled_uptime_seconds{node_type=\"peer\"}",
           "legendFormat": "peer",
           "refId": "A",
@@ -628,15 +1254,34 @@
         }
       ],
       "options": {
-        "reduceOptions": {"values": false, "calcs": ["lastNotNull"], "fields": ""},
-        "orientation": "auto", "textMode": "auto", "colorMode": "none",
-        "graphMode": "none", "justifyMode": "center"
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "none",
+        "graphMode": "none",
+        "justifyMode": "center"
       },
       "fieldConfig": {
         "defaults": {
           "mappings": [],
-          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]},
-          "color": {"mode": "thresholds"},
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
           "unit": "s"
         },
         "overrides": []
@@ -647,11 +1292,22 @@
       "title": "Non-sane Peers",
       "description": "Number of peers with non-sane status (insane or unknown). Should always be 0.",
       "type": "stat",
-      "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
-      "gridPos": {"h": 4, "w": 8, "x": 0, "y": 38},
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 8,
+        "x": 0,
+        "y": 40
+      },
       "targets": [
         {
-          "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${PROMETHEUS}"
+          },
           "expr": "rippled_peer_non_sane_total{node_type=~\"$node_type\"}",
           "legendFormat": "{{node_type}}",
           "refId": "A",
@@ -659,15 +1315,48 @@
         }
       ],
       "options": {
-        "reduceOptions": {"values": false, "calcs": ["lastNotNull"], "fields": ""},
-        "orientation": "auto", "textMode": "auto", "colorMode": "background",
-        "graphMode": "none", "justifyMode": "center"
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center"
       },
       "fieldConfig": {
         "defaults": {
-          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "red", "value": 1}]},
-          "color": {"mode": "thresholds"},
-          "mappings": [{"type": "value", "options": {"0": {"text": "OK", "color": "green"}}}]
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "OK",
+                  "color": "green"
+                }
+              }
+            }
+          ]
         },
         "overrides": []
       }
@@ -675,13 +1364,24 @@
     {
       "id": 20,
       "title": "Amendments Pending",
-      "description": "Amendments at the voting threshold pending activation. Non-zero means an upgrade is imminent — ensure rippled is up to date.",
+      "description": "Amendments at the voting threshold pending activation. Non-zero means an upgrade is imminent \u2014 ensure rippled is up to date.",
       "type": "stat",
-      "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
-      "gridPos": {"h": 4, "w": 8, "x": 8, "y": 38},
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 8,
+        "x": 8,
+        "y": 40
+      },
       "targets": [
         {
-          "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${PROMETHEUS}"
+          },
           "expr": "rippled_amendments_pending_total{node_type=~\"$node_type\"}",
           "legendFormat": "{{node_type}}",
           "refId": "A",
@@ -689,15 +1389,48 @@
         }
       ],
       "options": {
-        "reduceOptions": {"values": false, "calcs": ["lastNotNull"], "fields": ""},
-        "orientation": "auto", "textMode": "auto", "colorMode": "background",
-        "graphMode": "none", "justifyMode": "center"
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center"
       },
       "fieldConfig": {
         "defaults": {
-          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "orange", "value": 1}]},
-          "color": {"mode": "thresholds"},
-          "mappings": [{"type": "value", "options": {"0": {"text": "OK", "color": "green"}}}]
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "OK",
+                  "color": "green"
+                }
+              }
+            }
+          ]
         },
         "overrides": []
       }
@@ -707,11 +1440,22 @@
       "title": "UNL Size",
       "description": "Number of trusted validators in the UNL. Compare against Validation Quorum to understand headroom.",
       "type": "stat",
-      "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
-      "gridPos": {"h": 4, "w": 8, "x": 16, "y": 38},
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 8,
+        "x": 16,
+        "y": 40
+      },
       "targets": [
         {
-          "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${PROMETHEUS}"
+          },
           "expr": "rippled_unl_size{node_type=~\"$node_type\"}",
           "legendFormat": "{{node_type}}",
           "refId": "A",
@@ -719,14 +1463,33 @@
         }
       ],
       "options": {
-        "reduceOptions": {"values": false, "calcs": ["lastNotNull"], "fields": ""},
-        "orientation": "auto", "textMode": "auto", "colorMode": "value",
-        "graphMode": "none", "justifyMode": "center"
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center"
       },
       "fieldConfig": {
         "defaults": {
-          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]},
-          "color": {"mode": "thresholds"},
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
           "mappings": []
         },
         "overrides": []
@@ -735,13 +1498,24 @@
     {
       "id": 22,
       "title": "Consensus Phase",
-      "description": "Consensus phase over time. Each ledger round cycles Open → Establish → Accepted. At 30s scrape resolution individual sub-second cycles collapse; sustained time outside Accepted indicates consensus trouble.",
+      "description": "Consensus phase over time. Each ledger round cycles Open \u2192 Establish \u2192 Accepted. At 30s scrape resolution individual sub-second cycles collapse; sustained time outside Accepted indicates consensus trouble.",
       "type": "state-timeline",
-      "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
-      "gridPos": {"h": 6, "w": 24, "x": 0, "y": 28},
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 28
+      },
       "targets": [
         {
-          "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${PROMETHEUS}"
+          },
           "expr": "rippled_consensus_phase{node_type=~\"$node_type\"}",
           "legendFormat": "{{node_type}}",
           "interval": "30s",
@@ -753,8 +1527,15 @@
         "showValue": "auto",
         "alignValue": "left",
         "rowHeight": 0.9,
-        "legend": {"displayMode": "list", "placement": "bottom", "showLegend": true},
-        "tooltip": {"mode": "single", "sort": "none"}
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
       },
       "fieldConfig": {
         "defaults": {
@@ -762,24 +1543,51 @@
             "lineWidth": 0,
             "fillOpacity": 70,
             "spanNulls": false,
-            "hideFrom": {"legend": false, "tooltip": false, "viz": false}
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            }
           },
-          "color": {"mode": "thresholds"},
+          "color": {
+            "mode": "thresholds"
+          },
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              {"color": "blue", "value": null},
-              {"color": "orange", "value": 1},
-              {"color": "green", "value": 2}
+              {
+                "color": "blue",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              },
+              {
+                "color": "green",
+                "value": 2
+              }
             ]
           },
           "mappings": [
             {
               "type": "value",
               "options": {
-                "0": {"text": "Open", "color": "blue", "index": 0},
-                "1": {"text": "Establish", "color": "orange", "index": 1},
-                "2": {"text": "Accepted", "color": "green", "index": 2}
+                "0": {
+                  "text": "Open",
+                  "color": "blue",
+                  "index": 0
+                },
+                "1": {
+                  "text": "Establish",
+                  "color": "orange",
+                  "index": 1
+                },
+                "2": {
+                  "text": "Accepted",
+                  "color": "green",
+                  "index": 2
+                }
               }
             }
           ]
@@ -792,11 +1600,22 @@
       "title": "Amendment Blocked",
       "description": "1 if the node is amendment blocked. An amendment-blocked node cannot process transactions that require newer amendments and should be upgraded immediately.",
       "type": "stat",
-      "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
-      "gridPos": {"h": 4, "w": 24, "x": 0, "y": 34},
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 24,
+        "x": 0,
+        "y": 36
+      },
       "targets": [
         {
-          "datasource": {"type": "prometheus", "uid": "${PROMETHEUS}"},
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${PROMETHEUS}"
+          },
           "expr": "rippled_amendment_blocked{node_type=~\"$node_type\"}",
           "legendFormat": "{{node_type}}",
           "refId": "A",
@@ -804,31 +1623,65 @@
         }
       ],
       "options": {
-        "reduceOptions": {"values": false, "calcs": ["lastNotNull"], "fields": ""},
-        "orientation": "auto", "textMode": "auto", "colorMode": "background",
-        "graphMode": "none", "justifyMode": "center"
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center"
       },
       "fieldConfig": {
         "defaults": {
           "mappings": [
-            {"type": "value", "options": {"0": {"text": "OK", "color": "green"}, "1": {"text": "AMENDMENT BLOCKED", "color": "red"}}}
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "OK",
+                  "color": "green"
+                },
+                "1": {
+                  "text": "AMENDMENT BLOCKED",
+                  "color": "red"
+                }
+              }
+            }
           ],
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              {"color": "green", "value": null},
-              {"color": "red", "value": 1}
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
             ]
           },
-          "color": {"mode": "thresholds"}
+          "color": {
+            "mode": "thresholds"
+          }
         },
         "overrides": []
       }
     }
   ],
-  "time": {"from": "now-6h", "to": "now"},
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
   "timepicker": {},
-  "annotations": {"list": []},
+  "annotations": {
+    "list": []
+  },
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
