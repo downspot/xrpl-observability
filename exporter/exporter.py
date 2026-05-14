@@ -92,6 +92,7 @@ _last_rippled_uptime_seconds: int | None = None
 
 _peer_version_labels_last: set[str] = set()
 _job_queue_labels_last: set[str] = set()
+_job_type_labels_last: set[str] = set()
 
 # Tracks the last seen build_version label so the old label can be zeroed when rippled upgrades
 _build_version_last: str | None = None
@@ -211,6 +212,36 @@ rippled_uptime_seconds = Gauge(
     "rippled_uptime_seconds",
     "Server uptime in seconds",
     COMMON_LABELS,
+)
+
+rippled_initial_sync_duration_seconds = Gauge(
+    "rippled_initial_sync_duration_seconds",
+    "Time taken for the node to complete initial sync on startup (seconds)",
+    COMMON_LABELS,
+)
+
+rippled_job_type_per_second = Gauge(
+    "rippled_job_type_per_second",
+    "Jobs processed per second for each job type from the server load report",
+    COMMON_LABELS + ["job_type"],
+)
+
+rippled_job_type_peak_time_ms = Gauge(
+    "rippled_job_type_peak_time_ms",
+    "Peak execution time in milliseconds for each job type",
+    COMMON_LABELS + ["job_type"],
+)
+
+rippled_job_type_avg_time_ms = Gauge(
+    "rippled_job_type_avg_time_ms",
+    "Average execution time in milliseconds for each job type",
+    COMMON_LABELS + ["job_type"],
+)
+
+rippled_job_type_in_progress = Gauge(
+    "rippled_job_type_in_progress",
+    "Number of jobs currently in progress for each job type",
+    COMMON_LABELS + ["job_type"],
 )
 
 rippled_io_latency_ms = Gauge(
@@ -762,6 +793,40 @@ def set_endpoint_success(endpoint: str, success: int) -> None:
     ).set(success)
 
 
+def _update_job_type_metrics(job_types: list[dict[str, Any]]) -> None:
+    """Update per-job-type rate, peak time, avg time, and in-progress gauges from server_info load."""
+    global _job_type_labels_last
+
+    current_labels: set[str] = set()
+    for job in job_types:
+        if not isinstance(job, dict):
+            continue
+        job_type: str = str(job.get("job_type", ""))
+        if not job_type:
+            continue
+        current_labels.add(job_type)
+        rippled_job_type_per_second.labels(node_type=NODE_TYPE, job_type=job_type).set(
+            int(job.get("per_second", 0))
+        )
+        rippled_job_type_peak_time_ms.labels(node_type=NODE_TYPE, job_type=job_type).set(
+            int(job.get("peak_time", 0))
+        )
+        rippled_job_type_avg_time_ms.labels(node_type=NODE_TYPE, job_type=job_type).set(
+            int(job.get("avg_time", 0))
+        )
+        rippled_job_type_in_progress.labels(node_type=NODE_TYPE, job_type=job_type).set(
+            int(job.get("in_progress", 0))
+        )
+
+    for stale in _job_type_labels_last - current_labels:
+        rippled_job_type_per_second.labels(node_type=NODE_TYPE, job_type=stale).set(0)
+        rippled_job_type_peak_time_ms.labels(node_type=NODE_TYPE, job_type=stale).set(0)
+        rippled_job_type_avg_time_ms.labels(node_type=NODE_TYPE, job_type=stale).set(0)
+        rippled_job_type_in_progress.labels(node_type=NODE_TYPE, job_type=stale).set(0)
+
+    _job_type_labels_last = current_labels
+
+
 def update_server_info_metrics() -> None:
     global _peer_disconnects_last
     global _peer_disconnects_resources_last
@@ -869,11 +934,17 @@ def update_server_info_metrics() -> None:
     rippled_load_factor_cluster.labels(node_type=NODE_TYPE).set(float(info.get("load_factor_cluster", 0)))
     rippled_io_latency_ms.labels(node_type=NODE_TYPE).set(float(info.get("io_latency_ms", 0)))
 
+    rippled_initial_sync_duration_seconds.labels(node_type=NODE_TYPE).set(
+        int(info.get("initial_sync_duration_us", 0)) / 1_000_000
+    )
+
     load: dict[str, Any] = info.get("load", {})
     if load:
         rippled_load_threads.labels(node_type=NODE_TYPE).set(int(load.get("threads", 0)))
+        _update_job_type_metrics(load.get("job_types", []))
     else:
         rippled_load_threads.labels(node_type=NODE_TYPE).set(0)
+        _update_job_type_metrics([])
 
     rippled_transaction_overflow.labels(node_type=NODE_TYPE).set(
         int(info.get("jq_trans_overflow", 0))
