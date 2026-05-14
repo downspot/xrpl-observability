@@ -25,7 +25,7 @@ One exporter instance runs per rippled node. Each exporter shares its target nod
 | `exporter/exporter.py` | Python Prometheus exporter — scrapes rippled JSON-RPC endpoints |
 | `exporter/compose.yaml` | Docker Compose for both exporter instances |
 | `exporter/Dockerfile` | Container image definition |
-| `dashboards/rippled-overview.json` | Grafana dashboard — health at a glance (21 panels) |
+| `dashboards/rippled-overview.json` | Grafana dashboard — health at a glance (22 panels) |
 | `dashboards/rippled-deep-dive.json` | Grafana dashboard — detailed analysis (34 panels) |
 | `prometheus/scrape_configs.yaml` | Prometheus scrape config snippet for both exporters |
 
@@ -132,11 +132,18 @@ One exporter instance runs per rippled node. Each exporter shares its target nod
 
 The exporter shares rippled's network namespace via `network_mode: container:`. This means `127.0.0.1:5005` is directly reachable with no port mapping or rippled.cfg changes required.
 
-**After restarting or recreating a rippled container**, restart the corresponding exporter so it reattaches to the new network namespace:
+**After restarting a rippled container** (same container ID, e.g. `docker restart rippled-peer`), restart the exporter to reattach to the network namespace:
 
 ```bash
 docker restart rippled-exporter-peer
 docker restart rippled-exporter-validator
+```
+
+**After recreating a rippled container** (new container ID, e.g. after `docker compose up -d` following a config change), the old network namespace no longer exists. `docker restart` is not sufficient — you must recreate the exporter containers:
+
+```bash
+cd /path/to/rippled-exporter/
+docker compose down && docker compose up -d
 ```
 
 **Step 1 — Add the exporter metrics port to your rippled compose services.**

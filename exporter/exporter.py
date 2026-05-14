@@ -28,7 +28,7 @@ from typing import Any
 import requests
 from prometheus_client import Counter as PromCounter, Gauge, start_http_server
 
-__version__ = "1.2.0"
+__version__ = "1.3.0"
 
 logging.basicConfig(
     level=logging.INFO,
@@ -755,12 +755,22 @@ def update_server_info_metrics() -> None:
         rippled_ledger_age_seconds.labels(node_type=NODE_TYPE).set(0)
 
     complete_ledgers: str = str(info.get("complete_ledgers", "empty"))
-    if complete_ledgers != "empty" and "-" in complete_ledgers:
-        parts = complete_ledgers.split("-")
+    if complete_ledgers not in ("empty", "") and "-" in complete_ledgers:
+        # rippled can return a comma-separated list of ranges when the node has gaps
+        # in history (e.g. "32570-1000000,1000500-2000000") — take the global min/max.
         try:
-            rippled_complete_ledgers_low.labels(node_type=NODE_TYPE).set(int(parts[0]))
-            rippled_complete_ledgers_high.labels(node_type=NODE_TYPE).set(int(parts[-1]))
-        except ValueError:
+            range_segments: list[list[str]] = [seg.split("-") for seg in complete_ledgers.split(",")]
+            low: int = min(int(r[0]) for r in range_segments if len(r) == 2)
+            high: int = max(int(r[1]) for r in range_segments if len(r) == 2)
+            rippled_complete_ledgers_low.labels(node_type=NODE_TYPE).set(low)
+            rippled_complete_ledgers_high.labels(node_type=NODE_TYPE).set(high)
+        except ValueError as exc:
+            logger.warning(
+                "Could not parse complete_ledgers %r for %s: %s — setting to 0",
+                complete_ledgers,
+                NODE_TYPE,
+                exc,
+            )
             rippled_complete_ledgers_low.labels(node_type=NODE_TYPE).set(0)
             rippled_complete_ledgers_high.labels(node_type=NODE_TYPE).set(0)
     else:
@@ -922,8 +932,9 @@ def update_peer_metrics() -> None:
         # Trim the top 5% of latency values before averaging so that a single
         # dying peer (e.g. 18,000ms) doesn't skew the reported average.
         sorted_latencies: list[int] = sorted(latencies)
-        trim: int = max(1, len(sorted_latencies) // 20)
-        trimmed: list[int] = sorted_latencies[:-trim]
+        # Trim top 5% before averaging; guard ensures we never trim to an empty list.
+        trim: int = max(0, len(sorted_latencies) // 20)
+        trimmed: list[int] = sorted_latencies[:-trim] if trim > 0 else sorted_latencies
         avg_latency = sum(trimmed) / len(trimmed)
         rippled_peer_latency_avg_ms.labels(node_type=NODE_TYPE).set(avg_latency)
         rippled_peer_latency_min_ms.labels(node_type=NODE_TYPE).set(min(latencies))
@@ -1371,7 +1382,7 @@ def scrape_endpoint(endpoint: str, fn, required: bool = True) -> bool:
         fn()
         set_endpoint_success(endpoint, 1)
         return True
-    except Exception as exc:
+    except (requests.exceptions.RequestException, ValueError, RpcError) as exc:
         logger.error(
             "Failed %s scrape for %s at %s: %s",
             endpoint,
@@ -1381,6 +1392,16 @@ def scrape_endpoint(endpoint: str, fn, required: bool = True) -> bool:
         )
         set_endpoint_success(endpoint, 0)
         return not required
+    except Exception:
+        # Unexpected errors (bugs, prometheus_client internals, etc.) are re-raised
+        # so the main loop surfaces them with a full traceback rather than silently
+        # treating them as transient network failures.
+        logger.exception(
+            "Unexpected error in %s scrape for %s — re-raising",
+            endpoint,
+            NODE_TYPE,
+        )
+        raise
 
 
 def update_all_metrics() -> bool:
@@ -1425,7 +1446,16 @@ def main() -> None:
         RIPPLED_URL,
         SCRAPE_INTERVAL,
     )
-    start_http_server(METRICS_PORT)
+    try:
+        start_http_server(METRICS_PORT)
+    except OSError as exc:
+        logger.error(
+            "Failed to start metrics server on port %d: %s — "
+            "check that the port is not already in use and the process has permission",
+            METRICS_PORT,
+            exc,
+        )
+        raise SystemExit(1) from exc
 
     max_consecutive_failures: int = _parse_env_int("MAX_CONSECUTIVE_FAILURES", 60)
     consecutive_failures: int = 0
