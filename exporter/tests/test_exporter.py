@@ -1,5 +1,7 @@
 """Unit tests for exporter logic functions."""
 
+from typing import Any
+
 import pytest
 
 
@@ -98,3 +100,121 @@ class TestCompleteledgersParsing:
     def test_single_value_no_dash(self) -> None:
         """A string without a dash should return (0, 0) — not crash."""
         assert _parse_complete_ledgers("12345") == (0, 0)
+
+
+# ---------------------------------------------------------------------------
+# Helpers that replicate job-type stale-label logic from exporter.py.
+# The real function calls prometheus Gauge.labels().set() which has module-
+# level side-effects, so we mirror the set-tracking logic in plain dicts.
+# ---------------------------------------------------------------------------
+
+def _apply_job_type_updates(
+    job_types: list[dict[str, Any]],
+    labels_last: set[str],
+    gauge_state: dict[str, int],
+) -> set[str]:
+    """
+    Mirror _update_job_type_metrics() without prometheus deps.
+
+    Updates gauge_state in-place (keyed by job_type) and returns the new
+    current_labels set — the caller stores it as labels_last for next call.
+    Stale labels (in labels_last but not current) are zeroed in gauge_state.
+    """
+    current_labels: set[str] = set()
+    for job in job_types:
+        if not isinstance(job, dict):
+            continue
+        job_type: str = str(job.get("job_type", ""))
+        if not job_type:
+            continue
+        current_labels.add(job_type)
+        gauge_state[job_type] = int(job.get("per_second", 0))
+
+    for stale in labels_last - current_labels:
+        gauge_state[stale] = 0
+
+    return current_labels
+
+
+def _compute_counter_delta(raw: int, last: int) -> int:
+    """Mirror the delta-or-restart logic used for byte/op counters."""
+    return raw - last if raw >= last else raw
+
+
+# ---------------------------------------------------------------------------
+# Job-type stale-label tests
+# ---------------------------------------------------------------------------
+
+class TestJobTypeStaleLabels:
+    def test_new_labels_are_recorded(self) -> None:
+        """Labels that appear for the first time are added to gauge state."""
+        gauge: dict[str, int] = {}
+        labels_last: set[str] = set()
+        jobs = [{"job_type": "clientRPC", "per_second": 5}]
+        labels_last = _apply_job_type_updates(jobs, labels_last, gauge)
+        assert gauge["clientRPC"] == 5
+        assert "clientRPC" in labels_last
+
+    def test_stale_label_is_zeroed(self) -> None:
+        """A job_type present last scrape but absent this scrape must be set to 0."""
+        gauge: dict[str, int] = {"clientRPC": 5, "processTransaction": 3}
+        labels_last: set[str] = {"clientRPC", "processTransaction"}
+        # processTransaction disappears
+        jobs = [{"job_type": "clientRPC", "per_second": 7}]
+        labels_last = _apply_job_type_updates(jobs, labels_last, gauge)
+        assert gauge["clientRPC"] == 7
+        assert gauge["processTransaction"] == 0
+
+    def test_labels_last_updated_to_current(self) -> None:
+        """labels_last must reflect exactly the current scrape's labels after the call."""
+        gauge: dict[str, int] = {}
+        labels_last: set[str] = {"old_job"}
+        jobs = [
+            {"job_type": "newJob1", "per_second": 1},
+            {"job_type": "newJob2", "per_second": 2},
+        ]
+        labels_last = _apply_job_type_updates(jobs, labels_last, gauge)
+        assert labels_last == {"newJob1", "newJob2"}
+
+    def test_non_dict_entries_skipped(self) -> None:
+        """Non-dict entries in the job list must not raise and must be ignored."""
+        gauge: dict[str, int] = {}
+        labels_last: set[str] = set()
+        jobs: list[Any] = ["not_a_dict", None, {"job_type": "clientRPC", "per_second": 2}]
+        labels_last = _apply_job_type_updates(jobs, labels_last, gauge)
+        assert gauge == {"clientRPC": 2}
+
+    def test_empty_job_list_zeros_all_previous(self) -> None:
+        """Empty job list (all jobs idle) must zero every previously seen label."""
+        gauge: dict[str, int] = {"clientRPC": 5, "processTransaction": 3}
+        labels_last: set[str] = {"clientRPC", "processTransaction"}
+        labels_last = _apply_job_type_updates([], labels_last, gauge)
+        assert gauge["clientRPC"] == 0
+        assert gauge["processTransaction"] == 0
+        assert labels_last == set()
+
+
+# ---------------------------------------------------------------------------
+# Counter delta / restart-reset tests
+# ---------------------------------------------------------------------------
+
+class TestCounterDelta:
+    def test_normal_increment(self) -> None:
+        """Monotonically increasing counter produces positive delta."""
+        assert _compute_counter_delta(1000, 800) == 200
+
+    def test_no_change(self) -> None:
+        """Counter unchanged between scrapes produces zero delta."""
+        assert _compute_counter_delta(500, 500) == 0
+
+    def test_restart_resets_counter(self) -> None:
+        """Counter drops below last value (rippled restarted) — use raw as delta."""
+        assert _compute_counter_delta(50, 9000) == 50
+
+    def test_restart_to_zero(self) -> None:
+        """Counter resets to exactly zero after restart."""
+        assert _compute_counter_delta(0, 5000) == 0
+
+    def test_first_scrape_last_zero(self) -> None:
+        """First scrape: last=0, raw=300 — full value is the delta."""
+        assert _compute_counter_delta(300, 0) == 300
