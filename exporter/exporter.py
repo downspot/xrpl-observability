@@ -28,7 +28,7 @@ from typing import Any
 import requests
 from prometheus_client import Counter as PromCounter, Gauge, start_http_server
 
-__version__ = "1.3.0"
+__version__ = "1.4.0"
 
 logging.basicConfig(
     level=logging.INFO,
