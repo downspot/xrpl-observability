@@ -2406,7 +2406,7 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 24,
+        "w": 16,
         "x": 0,
         "y": 102
       },
@@ -2602,7 +2602,7 @@
       },
       "fieldConfig": {
         "defaults": {
-          "unit": "percentunit",
+          "unit": "percent",
           "custom": {
             "lineWidth": 1,
             "fillOpacity": 5,
@@ -3172,7 +3172,7 @@
         "legend": {
           "displayMode": "list",
           "placement": "bottom",
-          "showLegend": true
+          "showLegend": false
         }
       },
       "fieldConfig": {
@@ -3237,7 +3237,7 @@
         "legend": {
           "displayMode": "list",
           "placement": "bottom",
-          "showLegend": true
+          "showLegend": false
         }
       },
       "fieldConfig": {
@@ -3277,10 +3277,10 @@
         "uid": "${PROMETHEUS}"
       },
       "gridPos": {
-        "h": 4,
-        "w": 8,
-        "x": 0,
-        "y": 150
+        "h": 8,
+        "w": 4,
+        "x": 16,
+        "y": 102
       },
       "targets": [
         {
@@ -3339,16 +3339,16 @@
       "id": 48,
       "title": "Historical Ledger Fetch Rate",
       "description": "Rate of historical ledger data being fetched from peers (per minute). Non-zero during backfill after a fresh sync.",
-      "type": "timeseries",
+      "type": "stat",
       "datasource": {
         "type": "prometheus",
         "uid": "${PROMETHEUS}"
       },
       "gridPos": {
-        "h": 4,
-        "w": 8,
-        "x": 8,
-        "y": 150
+        "h": 8,
+        "w": 4,
+        "x": 20,
+        "y": 102
       },
       "targets": [
         {
@@ -3363,27 +3363,22 @@
         }
       ],
       "options": {
-        "tooltip": {
-          "mode": "multi",
-          "sort": "none"
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
         },
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        }
+        "orientation": "horizontal",
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto"
       },
       "fieldConfig": {
         "defaults": {
           "unit": "short",
-          "custom": {
-            "lineWidth": 1,
-            "fillOpacity": 5,
-            "showPoints": "never",
-            "spanNulls": false,
-            "lineInterpolation": "smooth",
-            "axisLabel": "ledgers/min"
-          },
           "color": {
             "mode": "palette-classic"
           },
@@ -3393,6 +3388,14 @@
               {
                 "color": "green",
                 "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 10
+              },
+              {
+                "color": "red",
+                "value": 100
               }
             ]
           }
