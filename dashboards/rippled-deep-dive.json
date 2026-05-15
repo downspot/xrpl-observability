@@ -2788,7 +2788,7 @@
             "type": "prometheus",
             "uid": "${PROMETHEUS}"
           },
-          "expr": "rate(rippled_db_node_read_bytes{node_type=~\"$node_type\"}[30s])",
+          "expr": "rate(rippled_db_node_read_bytes_total{node_type=~\"$node_type\"}[30s])",
           "legendFormat": "{{node_type}} read bytes/s",
           "interval": "30s",
           "refId": "A"
@@ -2798,7 +2798,7 @@
             "type": "prometheus",
             "uid": "${PROMETHEUS}"
           },
-          "expr": "rate(rippled_db_node_written_bytes{node_type=~\"$node_type\"}[30s])",
+          "expr": "rate(rippled_db_node_written_bytes_total{node_type=~\"$node_type\"}[30s])",
           "legendFormat": "{{node_type}} written bytes/s",
           "interval": "30s",
           "refId": "B"
