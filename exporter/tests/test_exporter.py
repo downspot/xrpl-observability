@@ -218,3 +218,33 @@ class TestCounterDelta:
     def test_first_scrape_last_zero(self) -> None:
         """First scrape: last=0, raw=300 — full value is the delta."""
         assert _compute_counter_delta(300, 0) == 300
+
+
+# ---------------------------------------------------------------------------
+# Reads duration delta + µs→s conversion tests
+# ---------------------------------------------------------------------------
+
+def _reads_duration_delta_seconds(raw_us: int, last_us: int) -> float:
+    """Mirror update_counts_metrics() reads-duration delta logic."""
+    delta_us: int = _compute_counter_delta(raw_us, last_us)
+    return delta_us / 1_000_000
+
+
+class TestReadsDurationDelta:
+    def test_normal_increment_converts_to_seconds(self) -> None:
+        """Delta in µs is divided by 1_000_000 to produce seconds."""
+        result = _reads_duration_delta_seconds(5_000_000, 3_000_000)
+        assert result == pytest.approx(2.0)
+
+    def test_no_change_produces_zero(self) -> None:
+        assert _reads_duration_delta_seconds(1_000_000, 1_000_000) == pytest.approx(0.0)
+
+    def test_restart_uses_raw_value(self) -> None:
+        """rippled restart resets counter — raw value itself is the delta."""
+        result = _reads_duration_delta_seconds(500_000, 9_000_000)
+        assert result == pytest.approx(0.5)
+
+    def test_fractional_seconds(self) -> None:
+        """Sub-second deltas are represented correctly."""
+        result = _reads_duration_delta_seconds(250_000, 0)
+        assert result == pytest.approx(0.25)

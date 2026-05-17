@@ -26,7 +26,7 @@ One exporter instance runs per rippled node. Each exporter shares its target nod
 | `exporter/compose.yaml` | Docker Compose for both exporter instances |
 | `exporter/Dockerfile` | Container image definition |
 | `dashboards/rippled-overview.json` | Grafana dashboard — health at a glance (22 panels) |
-| `dashboards/rippled-deep-dive.json` | Grafana dashboard — detailed analysis (34 panels) |
+| `dashboards/rippled-deep-dive.json` | Grafana dashboard — detailed analysis (45 panels) |
 | `prometheus/scrape_configs.yaml` | Prometheus scrape config snippet for both exporters |
 
 ---
@@ -127,6 +127,25 @@ One exporter instance runs per rippled node. Each exporter shares its target nod
 | `rippled_endpoint_scrape_success` | Gauge | Per-endpoint scrape health |
 | `rippled_scrape_duration_seconds` | Gauge | Time to complete one full scrape cycle |
 | `rippled_last_scrape_success_timestamp_seconds` | Gauge | Unix timestamp of last successful scrape |
+| `rippled_load_factor_local` | Gauge | This node's own load factor (only reported under load; 0 at idle) |
+| `rippled_load_factor_net` | Gauge | Load factor this node broadcasts to peers (only reported under load; 0 at idle) |
+| `rippled_load_factor_cluster` | Gauge | Cluster-agreed load factor (only reported under load; 0 at idle) |
+| `rippled_cache_al_hit_rate` | Gauge | AccountLedger (AL) cache hit rate (%) |
+| `rippled_cache_sle_hit_rate` | Gauge | State Ledger Entry (SLE) cache hit rate (%) |
+| `rippled_cache_al_size` | Gauge | Number of entries in the AL cache |
+| `rippled_cache_treenode_track_size` | Gauge | Entries in the SHAMap eviction tracking structure |
+| `rippled_db_node_read_bytes_total` | Counter | Total bytes read from the node store since exporter start (use `rate()`) |
+| `rippled_db_node_written_bytes_total` | Counter | Total bytes written to the node store since exporter start (use `rate()`) |
+| `rippled_db_node_reads_duration_seconds_total` | Counter | Total time spent on node store reads since exporter start (use `rate()`; value of 1.0 = 100% of a CPU second) |
+| `rippled_db_read_threads_running` | Gauge | DB read threads currently active |
+| `rippled_db_read_threads_total` | Gauge | Total DB read threads available (running near total = pool saturated) |
+| `rippled_historical_perminute` | Gauge | Historical ledger data fetched from peers per minute (non-zero during backfill) |
+| `rippled_initial_sync_duration_seconds` | Gauge | Time rippled spent on initial sync after last restart |
+| `rippled_objects_in_memory` | Gauge | Count of key rippled object types held in memory (`object_type` label) |
+| `rippled_job_type_per_second` | Gauge | Jobs processed per second per internal job type (`job_type` label) |
+| `rippled_job_type_peak_time_ms` | Gauge | Peak execution time in ms per job type (`job_type` label) |
+| `rippled_job_type_avg_time_ms` | Gauge | Average execution time in ms per job type (`job_type` label) |
+| `rippled_job_type_in_progress` | Gauge | Jobs currently in-flight per job type (`job_type` label) |
 
 ### Deployment
 
@@ -211,21 +230,25 @@ Both dashboards use a `${PROMETHEUS}` datasource placeholder and will prompt for
 ![rippled Deep Dive — Middle](screenshots/detailed-middle.png)
 ![rippled Deep Dive — Bottom](screenshots/detailed-bottom.png)
 
-34 panels — detailed analysis. Default time range: 6h / 30s refresh.
+45 panels — detailed analysis. Default time range: 6h / 30s refresh.
 
 - Inbound vs outbound peers, peer latency (capped at 500ms), consensus disputes
 - Network fees (base / median / open ledger), transaction queue, version spread (bar chart)
 - Cache hit rates, DB queue & write load
-- I/O latency, load factor (network + server + fee escalation + fee queue), load threads, transaction queue overflow
+- I/O latency, load factor (all components: network, server, fee escalation, fee queue, local, net, cluster), load threads, transaction queue overflow
 - Ledger Fetch Activity (active/incomplete fetches, cumulative timeouts)
 - Ledger Age, Reserves (base + owner increment in XRP)
 - State Accounting (cumulative time in non-full states), State Transitions (rate of transitions per minute)
 - Validator List Site Health (current UP/DOWN status per site), Non-sane Peers
 - Ledger History Range (range size — climbs steadily and drops at each NuDB rotation)
-- Load Factor (network + server + fee escalation + fee queue, full-width)
 - Database Sizes, DB Read/Write Ops rate
 - UNL Size, Validations Cached, Validation Quorum, Amendments Enabled / Pending / Near Threshold
 - Peer disconnects/min, uptime, exporter health (endpoint scrape success, scrape duration, last success age)
+- Initial sync duration, historical ledger fetch rate
+- Cache Health: AL/SLE hit rates, AL size, TreeNode cache and track size
+- I/O Detail: node read/write byte rates, reads duration rate, read thread saturation
+- Objects in Memory: 10 key rippled object types (Ledger, STTx, STObject, SHAMap nodes, etc.)
+- Job Type throughput and peak time per internal job type
 
 ### Template Variable
 

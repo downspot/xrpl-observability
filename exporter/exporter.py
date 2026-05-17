@@ -28,7 +28,7 @@ from typing import Any
 import requests
 from prometheus_client import Counter as PromCounter, Gauge, start_http_server
 
-__version__ = "1.4.0"
+__version__ = "1.4.1"
 
 logging.basicConfig(
     level=logging.INFO,
@@ -86,6 +86,7 @@ _db_node_writes_last: int = 0
 _db_node_reads_last: int = 0
 _db_node_read_bytes_last: int = 0
 _db_node_written_bytes_last: int = 0
+_db_node_reads_duration_us_last: int = 0
 
 # Tracks last-seen rippled uptime; used to detect rippled restarts across scrapes
 _last_rippled_uptime_seconds: int | None = None
@@ -650,9 +651,9 @@ rippled_db_read_threads_total = Gauge(
     COMMON_LABELS,
 )
 
-rippled_db_node_reads_duration_seconds = Gauge(
+rippled_db_node_reads_duration_seconds = PromCounter(
     "rippled_db_node_reads_duration_seconds",
-    "Cumulative time spent on node store read operations since rippled startup (seconds)",
+    "Total time spent on node store read operations since exporter start (seconds, use rate())",
     COMMON_LABELS,
 )
 
@@ -1148,6 +1149,7 @@ def update_counts_metrics() -> None:
     global _db_node_reads_last
     global _db_node_read_bytes_last
     global _db_node_written_bytes_last
+    global _db_node_reads_duration_us_last
 
     data = query_rpc("get_counts")
     result: dict[str, Any] = data["result"]
@@ -1267,10 +1269,17 @@ def update_counts_metrics() -> None:
     rippled_db_read_threads_total.labels(node_type=NODE_TYPE).set(
         int(result.get("read_threads_total", 0))
     )
-    # node_reads_duration_us is microseconds — convert to seconds for Prometheus convention
-    rippled_db_node_reads_duration_seconds.labels(node_type=NODE_TYPE).set(
-        int(result.get("node_reads_duration_us", 0)) / 1_000_000
+    raw_reads_duration_us: int = int(result.get("node_reads_duration_us", 0))
+    reads_duration_delta_us: int = (
+        raw_reads_duration_us - _db_node_reads_duration_us_last
+        if raw_reads_duration_us >= _db_node_reads_duration_us_last
+        else raw_reads_duration_us
     )
+    if reads_duration_delta_us > 0:
+        rippled_db_node_reads_duration_seconds.labels(node_type=NODE_TYPE).inc(
+            reads_duration_delta_us / 1_000_000
+        )
+    _db_node_reads_duration_us_last = raw_reads_duration_us
 
     logger.info(
         "get_counts %s ledger_hit=%.1f%% node_read_hit=%.1f%% read_queue=%s write_load=%s",

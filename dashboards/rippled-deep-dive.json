@@ -751,7 +751,7 @@
     {
       "id": 10,
       "title": "Load Factor",
-      "description": "Load factor components. Network = fee-scaling load broadcast to peers. Server = this node's own local load. Fee Escalation > 1 means transaction fees are being artificially inflated. Fee Queue > 1 means the transaction queue is adding pressure on fees.",
+      "description": "All load factor components. network = overall load factor broadcast to peers; server = this node's resource pressure; fee_escalation = current fee escalation multiplier; fee_queue = queue-based fee factor; local/net/cluster = only reported under actual load pressure, normally 0.",
       "type": "timeseries",
       "datasource": {
         "type": "prometheus",
@@ -803,6 +803,36 @@
           "legendFormat": "{{node_type}} fee_queue",
           "interval": "30s",
           "refId": "D"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${PROMETHEUS}"
+          },
+          "expr": "avg_over_time(rippled_load_factor_local{node_type=~\"$node_type\"}[30s])",
+          "legendFormat": "{{node_type}} local",
+          "interval": "30s",
+          "refId": "E"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${PROMETHEUS}"
+          },
+          "expr": "avg_over_time(rippled_load_factor_net{node_type=~\"$node_type\"}[30s])",
+          "legendFormat": "{{node_type}} net",
+          "interval": "30s",
+          "refId": "F"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${PROMETHEUS}"
+          },
+          "expr": "avg_over_time(rippled_load_factor_cluster{node_type=~\"$node_type\"}[30s])",
+          "legendFormat": "{{node_type}} cluster",
+          "interval": "30s",
+          "refId": "G"
         }
       ],
       "options": {
@@ -2468,91 +2498,6 @@
       }
     },
     {
-      "id": 37,
-      "title": "Load Factor \u2014 Local / Net / Cluster",
-      "description": "Local load factor reported by this node (reflects its own resource pressure). Net = load factor this node is broadcasting to peers. Cluster = agreed load factor across the cluster. Under normal conditions all three are 0 (not reported) or 1.",
-      "type": "timeseries",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${PROMETHEUS}"
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 24,
-        "x": 0,
-        "y": 110
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${PROMETHEUS}"
-          },
-          "expr": "avg_over_time(rippled_load_factor_local{node_type=~\"$node_type\"}[30s])",
-          "legendFormat": "{{node_type}} local",
-          "interval": "30s",
-          "refId": "A"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${PROMETHEUS}"
-          },
-          "expr": "avg_over_time(rippled_load_factor_net{node_type=~\"$node_type\"}[30s])",
-          "legendFormat": "{{node_type}} net",
-          "interval": "30s",
-          "refId": "B"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${PROMETHEUS}"
-          },
-          "expr": "avg_over_time(rippled_load_factor_cluster{node_type=~\"$node_type\"}[30s])",
-          "legendFormat": "{{node_type}} cluster",
-          "interval": "30s",
-          "refId": "C"
-        }
-      ],
-      "options": {
-        "tooltip": {
-          "mode": "multi",
-          "sort": "none"
-        },
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        }
-      },
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "custom": {
-            "lineWidth": 1,
-            "fillOpacity": 5,
-            "showPoints": "never",
-            "spanNulls": false,
-            "lineInterpolation": "smooth",
-            "axisLabel": "factor (1 = no load)"
-          },
-          "color": {
-            "mode": "palette-classic"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          }
-        },
-        "overrides": []
-      }
-    },
-    {
       "id": 38,
       "title": "Cache Hit Rate \u2014 AL & SLE",
       "description": "Application Ledger (AL) cache and StateMap Ledger Entry (SLE) cache hit rates. Higher is better \u2014 low hit rates increase database I/O.",
@@ -2565,7 +2510,7 @@
         "h": 8,
         "w": 8,
         "x": 0,
-        "y": 118
+        "y": 110
       },
       "targets": [
         {
@@ -2640,7 +2585,7 @@
         "h": 8,
         "w": 8,
         "x": 8,
-        "y": 118
+        "y": 110
       },
       "targets": [
         {
@@ -2705,7 +2650,7 @@
         "h": 8,
         "w": 8,
         "x": 16,
-        "y": 118
+        "y": 110
       },
       "targets": [
         {
@@ -2780,7 +2725,7 @@
         "h": 8,
         "w": 8,
         "x": 0,
-        "y": 126
+        "y": 118
       },
       "targets": [
         {
@@ -2844,8 +2789,8 @@
     },
     {
       "id": 42,
-      "title": "DB Node Reads Duration",
-      "description": "Average time spent per database read batch (seconds). Derived from node_reads_duration_us (microseconds) converted to seconds.",
+      "title": "DB Node Reads Duration (rate)",
+      "description": "Rate of time spent on node store reads (seconds/second). A value of 1.0 means reads are consuming 100% of a CPU second. Derived from node_reads_duration_us counter delta.",
       "type": "timeseries",
       "datasource": {
         "type": "prometheus",
@@ -2855,7 +2800,7 @@
         "h": 8,
         "w": 8,
         "x": 8,
-        "y": 126
+        "y": 118
       },
       "targets": [
         {
@@ -2863,7 +2808,7 @@
             "type": "prometheus",
             "uid": "${PROMETHEUS}"
           },
-          "expr": "rippled_db_node_reads_duration_seconds{node_type=~\"$node_type\"}",
+          "expr": "rate(rippled_db_node_reads_duration_seconds_total{node_type=~\"$node_type\"}[30s])",
           "legendFormat": "{{node_type}} read duration",
           "interval": "30s",
           "refId": "A"
@@ -2920,7 +2865,7 @@
         "h": 8,
         "w": 8,
         "x": 16,
-        "y": 126
+        "y": 118
       },
       "targets": [
         {
@@ -2995,7 +2940,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 134
+        "y": 126
       },
       "targets": [
         {
@@ -3150,7 +3095,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 142
+        "y": 134
       },
       "targets": [
         {
@@ -3215,7 +3160,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 142
+        "y": 134
       },
       "targets": [
         {
