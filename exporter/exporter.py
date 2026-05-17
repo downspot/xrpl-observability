@@ -28,7 +28,7 @@ from typing import Any
 import requests
 from prometheus_client import Counter as PromCounter, Gauge, start_http_server
 
-__version__ = "1.3.0"
+__version__ = "1.4.1"
 
 logging.basicConfig(
     level=logging.INFO,
@@ -84,12 +84,16 @@ _peer_disconnects_last: int = 0
 _peer_disconnects_resources_last: int = 0
 _db_node_writes_last: int = 0
 _db_node_reads_last: int = 0
+_db_node_read_bytes_last: int = 0
+_db_node_written_bytes_last: int = 0
+_db_node_reads_duration_us_last: int = 0
 
 # Tracks last-seen rippled uptime; used to detect rippled restarts across scrapes
 _last_rippled_uptime_seconds: int | None = None
 
 _peer_version_labels_last: set[str] = set()
 _job_queue_labels_last: set[str] = set()
+_job_type_labels_last: set[str] = set()
 
 # Tracks the last seen build_version label so the old label can be zeroed when rippled upgrades
 _build_version_last: str | None = None
@@ -187,10 +191,58 @@ rippled_load_factor = Gauge(
     COMMON_LABELS,
 )
 
+rippled_load_factor_local = Gauge(
+    "rippled_load_factor_local",
+    "Load factor based on load to this server only (1 = no load)",
+    COMMON_LABELS,
+)
+
+rippled_load_factor_net = Gauge(
+    "rippled_load_factor_net",
+    "Load factor estimated by the rest of the network (1 = no load)",
+    COMMON_LABELS,
+)
+
+rippled_load_factor_cluster = Gauge(
+    "rippled_load_factor_cluster",
+    "Load factor based on load to servers in this cluster (1 = no load; 1 if no cluster)",
+    COMMON_LABELS,
+)
+
 rippled_uptime_seconds = Gauge(
     "rippled_uptime_seconds",
     "Server uptime in seconds",
     COMMON_LABELS,
+)
+
+rippled_initial_sync_duration_seconds = Gauge(
+    "rippled_initial_sync_duration_seconds",
+    "Time taken for the node to complete initial sync on startup (seconds)",
+    COMMON_LABELS,
+)
+
+rippled_job_type_per_second = Gauge(
+    "rippled_job_type_per_second",
+    "Jobs processed per second for each job type from the server load report",
+    COMMON_LABELS + ["job_type"],
+)
+
+rippled_job_type_peak_time_ms = Gauge(
+    "rippled_job_type_peak_time_ms",
+    "Peak execution time in milliseconds for each job type",
+    COMMON_LABELS + ["job_type"],
+)
+
+rippled_job_type_avg_time_ms = Gauge(
+    "rippled_job_type_avg_time_ms",
+    "Average execution time in milliseconds for each job type",
+    COMMON_LABELS + ["job_type"],
+)
+
+rippled_job_type_in_progress = Gauge(
+    "rippled_job_type_in_progress",
+    "Number of jobs currently in progress for each job type",
+    COMMON_LABELS + ["job_type"],
 )
 
 rippled_io_latency_ms = Gauge(
@@ -354,6 +406,18 @@ rippled_cache_ledger_hit_rate = Gauge(
 rippled_cache_node_read_hit_rate = Gauge(
     "rippled_cache_node_read_hit_rate",
     "Node read cache hit rate as a percentage (0-100)",
+    COMMON_LABELS,
+)
+
+rippled_cache_al_hit_rate = Gauge(
+    "rippled_cache_al_hit_rate",
+    "AccountLedger (AL) cache hit rate as a percentage (0-100)",
+    COMMON_LABELS,
+)
+
+rippled_cache_sle_hit_rate = Gauge(
+    "rippled_cache_sle_hit_rate",
+    "State Ledger Entry (SLE) cache hit rate as a percentage (0-100)",
     COMMON_LABELS,
 )
 
@@ -545,6 +609,60 @@ rippled_validations_cached = Gauge(
     COMMON_LABELS,
 )
 
+rippled_db_node_read_bytes = PromCounter(
+    "rippled_db_node_read_bytes",
+    "Total bytes read from the NuDB/RocksDB node store since rippled startup (use rate())",
+    COMMON_LABELS,
+)
+
+rippled_db_node_written_bytes = PromCounter(
+    "rippled_db_node_written_bytes",
+    "Total bytes written to the NuDB/RocksDB node store since rippled startup (use rate())",
+    COMMON_LABELS,
+)
+
+rippled_objects_in_memory = Gauge(
+    "rippled_objects_in_memory",
+    "Number of objects of a given type currently held in memory",
+    COMMON_LABELS + ["object_type"],
+)
+
+rippled_historical_perminute = Gauge(
+    "rippled_historical_perminute",
+    "Rate of historical ledger data processing per minute",
+    COMMON_LABELS,
+)
+
+rippled_cache_al_size = Gauge(
+    "rippled_cache_al_size",
+    "Number of entries in the AccountLedger (AL) cache",
+    COMMON_LABELS,
+)
+
+rippled_db_read_threads_running = Gauge(
+    "rippled_db_read_threads_running",
+    "Number of node store read threads currently executing",
+    COMMON_LABELS,
+)
+
+rippled_db_read_threads_total = Gauge(
+    "rippled_db_read_threads_total",
+    "Total number of node store read threads",
+    COMMON_LABELS,
+)
+
+rippled_db_node_reads_duration_seconds = PromCounter(
+    "rippled_db_node_reads_duration_seconds",
+    "Total time spent on node store read operations since exporter start (seconds, use rate())",
+    COMMON_LABELS,
+)
+
+rippled_cache_treenode_track_size = Gauge(
+    "rippled_cache_treenode_track_size",
+    "Number of entries being tracked in the SHAMap tree node tracker",
+    COMMON_LABELS,
+)
+
 # --- peers additional metrics ---
 
 rippled_peer_non_sane_total = Gauge(
@@ -676,6 +794,40 @@ def set_endpoint_success(endpoint: str, success: int) -> None:
     ).set(success)
 
 
+def _update_job_type_metrics(job_types: list[dict[str, Any]]) -> None:
+    """Update per-job-type rate, peak time, avg time, and in-progress gauges from server_info load."""
+    global _job_type_labels_last
+
+    current_labels: set[str] = set()
+    for job in job_types:
+        if not isinstance(job, dict):
+            continue
+        job_type: str = str(job.get("job_type", ""))
+        if not job_type:
+            continue
+        current_labels.add(job_type)
+        rippled_job_type_per_second.labels(node_type=NODE_TYPE, job_type=job_type).set(
+            int(job.get("per_second", 0))
+        )
+        rippled_job_type_peak_time_ms.labels(node_type=NODE_TYPE, job_type=job_type).set(
+            int(job.get("peak_time", 0))
+        )
+        rippled_job_type_avg_time_ms.labels(node_type=NODE_TYPE, job_type=job_type).set(
+            int(job.get("avg_time", 0))
+        )
+        rippled_job_type_in_progress.labels(node_type=NODE_TYPE, job_type=job_type).set(
+            int(job.get("in_progress", 0))
+        )
+
+    for stale in _job_type_labels_last - current_labels:
+        rippled_job_type_per_second.labels(node_type=NODE_TYPE, job_type=stale).set(0)
+        rippled_job_type_peak_time_ms.labels(node_type=NODE_TYPE, job_type=stale).set(0)
+        rippled_job_type_avg_time_ms.labels(node_type=NODE_TYPE, job_type=stale).set(0)
+        rippled_job_type_in_progress.labels(node_type=NODE_TYPE, job_type=stale).set(0)
+
+    _job_type_labels_last = current_labels
+
+
 def update_server_info_metrics() -> None:
     global _peer_disconnects_last
     global _peer_disconnects_resources_last
@@ -778,13 +930,22 @@ def update_server_info_metrics() -> None:
         rippled_complete_ledgers_high.labels(node_type=NODE_TYPE).set(0)
 
     rippled_load_factor.labels(node_type=NODE_TYPE).set(float(info.get("load_factor", 0)))
+    rippled_load_factor_local.labels(node_type=NODE_TYPE).set(float(info.get("load_factor_local", 0)))
+    rippled_load_factor_net.labels(node_type=NODE_TYPE).set(float(info.get("load_factor_net", 0)))
+    rippled_load_factor_cluster.labels(node_type=NODE_TYPE).set(float(info.get("load_factor_cluster", 0)))
     rippled_io_latency_ms.labels(node_type=NODE_TYPE).set(float(info.get("io_latency_ms", 0)))
+
+    rippled_initial_sync_duration_seconds.labels(node_type=NODE_TYPE).set(
+        int(info.get("initial_sync_duration_us", 0)) / 1_000_000
+    )
 
     load: dict[str, Any] = info.get("load", {})
     if load:
         rippled_load_threads.labels(node_type=NODE_TYPE).set(int(load.get("threads", 0)))
+        _update_job_type_metrics(load.get("job_types", []))
     else:
         rippled_load_threads.labels(node_type=NODE_TYPE).set(0)
+        _update_job_type_metrics([])
 
     rippled_transaction_overflow.labels(node_type=NODE_TYPE).set(
         int(info.get("jq_trans_overflow", 0))
@@ -986,12 +1147,21 @@ def update_peer_metrics() -> None:
 def update_counts_metrics() -> None:
     global _db_node_writes_last
     global _db_node_reads_last
+    global _db_node_read_bytes_last
+    global _db_node_written_bytes_last
+    global _db_node_reads_duration_us_last
 
     data = query_rpc("get_counts")
     result: dict[str, Any] = data["result"]
 
     rippled_cache_ledger_hit_rate.labels(node_type=NODE_TYPE).set(
         float(result.get("ledger_hit_rate", 0))
+    )
+    rippled_cache_al_hit_rate.labels(node_type=NODE_TYPE).set(
+        float(result.get("AL_hit_rate", 0))
+    )
+    rippled_cache_sle_hit_rate.labels(node_type=NODE_TYPE).set(
+        float(result.get("SLE_hit_rate", 0))
     )
 
     node_reads_hit: int = int(result.get("node_reads_hit", 0))
@@ -1027,6 +1197,48 @@ def update_counts_metrics() -> None:
     _db_node_writes_last = raw_node_writes
     _db_node_reads_last = node_reads_total
 
+    raw_read_bytes: int = int(result.get("node_read_bytes", 0))
+    raw_written_bytes: int = int(result.get("node_written_bytes", 0))
+
+    read_bytes_delta: int = (
+        raw_read_bytes - _db_node_read_bytes_last
+        if raw_read_bytes >= _db_node_read_bytes_last
+        else raw_read_bytes
+    )
+    written_bytes_delta: int = (
+        raw_written_bytes - _db_node_written_bytes_last
+        if raw_written_bytes >= _db_node_written_bytes_last
+        else raw_written_bytes
+    )
+
+    if read_bytes_delta > 0:
+        rippled_db_node_read_bytes.labels(node_type=NODE_TYPE).inc(read_bytes_delta)
+    if written_bytes_delta > 0:
+        rippled_db_node_written_bytes.labels(node_type=NODE_TYPE).inc(written_bytes_delta)
+
+    _db_node_read_bytes_last = raw_read_bytes
+    _db_node_written_bytes_last = raw_written_bytes
+
+    rippled_historical_perminute.labels(node_type=NODE_TYPE).set(
+        int(result.get("historical_perminute", 0))
+    )
+
+    for object_type, key in (
+        ("Ledger", "ripple::Ledger"),
+        ("Transaction", "ripple::Transaction"),
+        ("STTx", "ripple::STTx"),
+        ("STLedgerEntry", "ripple::STLedgerEntry"),
+        ("STObject", "ripple::STObject"),
+        ("STValidation", "ripple::STValidation"),
+        ("SHAMapInnerNode", "ripple::SHAMapInnerNode"),
+        ("SHAMapAccountStateLeafNode", "ripple::SHAMapAccountStateLeafNode"),
+        ("HashRouterEntry", "ripple::HashRouter::Entry"),
+        ("InboundLedger", "ripple::InboundLedger"),
+    ):
+        rippled_objects_in_memory.labels(node_type=NODE_TYPE, object_type=object_type).set(
+            int(result.get(key, 0))
+        )
+
     for db_name, key in (
         ("ledger", "dbKBLedger"),
         ("transaction", "dbKBTransaction"),
@@ -1039,12 +1251,35 @@ def update_counts_metrics() -> None:
     rippled_cache_treenode_size.labels(node_type=NODE_TYPE).set(
         int(result.get("treenode_cache_size", 0))
     )
+    rippled_cache_treenode_track_size.labels(node_type=NODE_TYPE).set(
+        int(result.get("treenode_track_size", 0))
+    )
     rippled_cache_fullbelow_size.labels(node_type=NODE_TYPE).set(
         int(result.get("fullbelow_size", 0))
     )
     rippled_validations_cached.labels(node_type=NODE_TYPE).set(
         int(result.get("validations_cached", 0))
     )
+    rippled_cache_al_size.labels(node_type=NODE_TYPE).set(
+        int(result.get("AL_size", 0))
+    )
+    rippled_db_read_threads_running.labels(node_type=NODE_TYPE).set(
+        int(result.get("read_threads_running", 0))
+    )
+    rippled_db_read_threads_total.labels(node_type=NODE_TYPE).set(
+        int(result.get("read_threads_total", 0))
+    )
+    raw_reads_duration_us: int = int(result.get("node_reads_duration_us", 0))
+    reads_duration_delta_us: int = (
+        raw_reads_duration_us - _db_node_reads_duration_us_last
+        if raw_reads_duration_us >= _db_node_reads_duration_us_last
+        else raw_reads_duration_us
+    )
+    if reads_duration_delta_us > 0:
+        rippled_db_node_reads_duration_seconds.labels(node_type=NODE_TYPE).inc(
+            reads_duration_delta_us / 1_000_000
+        )
+    _db_node_reads_duration_us_last = raw_reads_duration_us
 
     logger.info(
         "get_counts %s ledger_hit=%.1f%% node_read_hit=%.1f%% read_queue=%s write_load=%s",

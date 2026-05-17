@@ -751,7 +751,7 @@
     {
       "id": 10,
       "title": "Load Factor",
-      "description": "Load factor components. Network = fee-scaling load broadcast to peers. Server = this node's own local load. Fee Escalation > 1 means transaction fees are being artificially inflated. Fee Queue > 1 means the transaction queue is adding pressure on fees.",
+      "description": "All load factor components. network = overall load factor broadcast to peers; server = this node's resource pressure; fee_escalation = current fee escalation multiplier; fee_queue = queue-based fee factor; local/net/cluster = only reported under actual load pressure, normally 0.",
       "type": "timeseries",
       "datasource": {
         "type": "prometheus",
@@ -803,6 +803,36 @@
           "legendFormat": "{{node_type}} fee_queue",
           "interval": "30s",
           "refId": "D"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${PROMETHEUS}"
+          },
+          "expr": "avg_over_time(rippled_load_factor_local{node_type=~\"$node_type\"}[30s])",
+          "legendFormat": "{{node_type}} local",
+          "interval": "30s",
+          "refId": "E"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${PROMETHEUS}"
+          },
+          "expr": "avg_over_time(rippled_load_factor_net{node_type=~\"$node_type\"}[30s])",
+          "legendFormat": "{{node_type}} net",
+          "interval": "30s",
+          "refId": "F"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${PROMETHEUS}"
+          },
+          "expr": "avg_over_time(rippled_load_factor_cluster{node_type=~\"$node_type\"}[30s])",
+          "legendFormat": "{{node_type}} cluster",
+          "interval": "30s",
+          "refId": "G"
         }
       ],
       "options": {
@@ -2406,7 +2436,7 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 24,
+        "w": 16,
         "x": 0,
         "y": 102
       },
@@ -2460,6 +2490,857 @@
               {
                 "color": "red",
                 "value": 30
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 38,
+      "title": "Cache Hit Rate \u2014 AL & SLE",
+      "description": "Application Ledger (AL) cache and StateMap Ledger Entry (SLE) cache hit rates. Higher is better \u2014 low hit rates increase database I/O.",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 110
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${PROMETHEUS}"
+          },
+          "expr": "rippled_cache_al_hit_rate{node_type=~\"$node_type\"}",
+          "legendFormat": "{{node_type}} AL hit rate",
+          "interval": "30s",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${PROMETHEUS}"
+          },
+          "expr": "rippled_cache_sle_hit_rate{node_type=~\"$node_type\"}",
+          "legendFormat": "{{node_type}} SLE hit rate",
+          "interval": "30s",
+          "refId": "B"
+        }
+      ],
+      "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "custom": {
+            "lineWidth": 1,
+            "fillOpacity": 5,
+            "showPoints": "never",
+            "spanNulls": false,
+            "lineInterpolation": "smooth",
+            "axisLabel": "hit rate"
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 39,
+      "title": "Cache Size \u2014 AL & SLE",
+      "description": "Number of entries in the Application Ledger (AL) and SLE caches. Sudden drops may indicate cache eviction pressure.",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 110
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${PROMETHEUS}"
+          },
+          "expr": "rippled_cache_al_size{node_type=~\"$node_type\"}",
+          "legendFormat": "{{node_type}} AL size",
+          "interval": "30s",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "lineWidth": 1,
+            "fillOpacity": 5,
+            "showPoints": "never",
+            "spanNulls": false,
+            "lineInterpolation": "smooth",
+            "axisLabel": "entries"
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 40,
+      "title": "TreeNode Cache Size & Track Size",
+      "description": "TreeNode cache holds SHAMap tree nodes in memory. Track size = entries in the eviction tracking structure. Cache size is from rippled_cache_treenode_size (existing metric); track size is new.",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 110
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${PROMETHEUS}"
+          },
+          "expr": "rippled_cache_treenode_size{node_type=~\"$node_type\"}",
+          "legendFormat": "{{node_type}} treenode cache",
+          "interval": "30s",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${PROMETHEUS}"
+          },
+          "expr": "rippled_cache_treenode_track_size{node_type=~\"$node_type\"}",
+          "legendFormat": "{{node_type}} treenode track",
+          "interval": "30s",
+          "refId": "B"
+        }
+      ],
+      "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "lineWidth": 1,
+            "fillOpacity": 5,
+            "showPoints": "never",
+            "spanNulls": false,
+            "lineInterpolation": "smooth",
+            "axisLabel": "entries"
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 41,
+      "title": "DB Node Read / Write Bytes",
+      "description": "Rate of bytes read and written to the node database (NuDB/RocksDB). Useful for correlating I/O load with cache miss rates.",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 118
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${PROMETHEUS}"
+          },
+          "expr": "rate(rippled_db_node_read_bytes_total{node_type=~\"$node_type\"}[30s])",
+          "legendFormat": "{{node_type}} read bytes/s",
+          "interval": "30s",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${PROMETHEUS}"
+          },
+          "expr": "rate(rippled_db_node_written_bytes_total{node_type=~\"$node_type\"}[30s])",
+          "legendFormat": "{{node_type}} written bytes/s",
+          "interval": "30s",
+          "refId": "B"
+        }
+      ],
+      "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "Bps",
+          "custom": {
+            "lineWidth": 1,
+            "fillOpacity": 5,
+            "showPoints": "never",
+            "spanNulls": false,
+            "lineInterpolation": "smooth",
+            "axisLabel": "bytes/s"
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 42,
+      "title": "DB Node Reads Duration (rate)",
+      "description": "Rate of time spent on node store reads (seconds/second). A value of 1.0 means reads are consuming 100% of a CPU second. Derived from node_reads_duration_us counter delta.",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 118
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${PROMETHEUS}"
+          },
+          "expr": "rate(rippled_db_node_reads_duration_seconds_total{node_type=~\"$node_type\"}[30s])",
+          "legendFormat": "{{node_type}} read duration",
+          "interval": "30s",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": {
+            "lineWidth": 1,
+            "fillOpacity": 5,
+            "showPoints": "never",
+            "spanNulls": false,
+            "lineInterpolation": "smooth",
+            "axisLabel": "seconds"
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 43,
+      "title": "DB Read Threads",
+      "description": "Number of database read threads currently running and total available. Running close to total indicates the read thread pool is saturated.",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 118
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${PROMETHEUS}"
+          },
+          "expr": "rippled_db_read_threads_running{node_type=~\"$node_type\"}",
+          "legendFormat": "{{node_type}} running",
+          "interval": "30s",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${PROMETHEUS}"
+          },
+          "expr": "rippled_db_read_threads_total{node_type=~\"$node_type\"}",
+          "legendFormat": "{{node_type}} total",
+          "interval": "30s",
+          "refId": "B"
+        }
+      ],
+      "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "lineWidth": 1,
+            "fillOpacity": 5,
+            "showPoints": "never",
+            "spanNulls": false,
+            "lineInterpolation": "smooth",
+            "axisLabel": "threads"
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 44,
+      "title": "Objects in Memory",
+      "description": "Count of key rippled object types held in memory (from get_counts). Useful for tracking memory pressure and cache effectiveness. Includes: Ledger, STTx, STObject, SHAMapInnerNode, SHAMapTreeNode, HashRouter::Entry, RippleState, AccountState, ValidatorListItem, Offer.",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 126
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${PROMETHEUS}"
+          },
+          "expr": "rippled_objects_in_memory{node_type=~\"$node_type\",object_type=\"Ledger\"}",
+          "legendFormat": "{{node_type}} Ledger",
+          "interval": "30s",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${PROMETHEUS}"
+          },
+          "expr": "rippled_objects_in_memory{node_type=~\"$node_type\",object_type=\"STTx\"}",
+          "legendFormat": "{{node_type}} STTx",
+          "interval": "30s",
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${PROMETHEUS}"
+          },
+          "expr": "rippled_objects_in_memory{node_type=~\"$node_type\",object_type=\"STObject\"}",
+          "legendFormat": "{{node_type}} STObject",
+          "interval": "30s",
+          "refId": "C"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${PROMETHEUS}"
+          },
+          "expr": "rippled_objects_in_memory{node_type=~\"$node_type\",object_type=\"SHAMapInnerNode\"}",
+          "legendFormat": "{{node_type}} SHAMapInnerNode",
+          "interval": "30s",
+          "refId": "D"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${PROMETHEUS}"
+          },
+          "expr": "rippled_objects_in_memory{node_type=~\"$node_type\",object_type=\"SHAMapTreeNode\"}",
+          "legendFormat": "{{node_type}} SHAMapTreeNode",
+          "interval": "30s",
+          "refId": "E"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${PROMETHEUS}"
+          },
+          "expr": "rippled_objects_in_memory{node_type=~\"$node_type\",object_type=\"HashRouter::Entry\"}",
+          "legendFormat": "{{node_type}} HashRouter::Entry",
+          "interval": "30s",
+          "refId": "F"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${PROMETHEUS}"
+          },
+          "expr": "rippled_objects_in_memory{node_type=~\"$node_type\",object_type=\"RippleState\"}",
+          "legendFormat": "{{node_type}} RippleState",
+          "interval": "30s",
+          "refId": "G"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${PROMETHEUS}"
+          },
+          "expr": "rippled_objects_in_memory{node_type=~\"$node_type\",object_type=\"AccountState\"}",
+          "legendFormat": "{{node_type}} AccountState",
+          "interval": "30s",
+          "refId": "H"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${PROMETHEUS}"
+          },
+          "expr": "rippled_objects_in_memory{node_type=~\"$node_type\",object_type=\"ValidatorListItem\"}",
+          "legendFormat": "{{node_type}} ValidatorListItem",
+          "interval": "30s",
+          "refId": "I"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${PROMETHEUS}"
+          },
+          "expr": "rippled_objects_in_memory{node_type=~\"$node_type\",object_type=\"Offer\"}",
+          "legendFormat": "{{node_type}} Offer",
+          "interval": "30s",
+          "refId": "J"
+        }
+      ],
+      "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "lineWidth": 1,
+            "fillOpacity": 5,
+            "showPoints": "never",
+            "spanNulls": false,
+            "lineInterpolation": "smooth",
+            "axisLabel": "count"
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 45,
+      "title": "Job Type Throughput (per/s)",
+      "description": "Jobs processed per second for each rippled job type. Tracks internal job queue activity \u2014 spikes may correlate with consensus load or peer activity.",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 134
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${PROMETHEUS}"
+          },
+          "expr": "rippled_job_type_per_second{node_type=~\"$node_type\"}",
+          "legendFormat": "{{node_type}} {{job_type}}",
+          "interval": "30s",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "lineWidth": 1,
+            "fillOpacity": 5,
+            "showPoints": "never",
+            "spanNulls": false,
+            "lineInterpolation": "smooth",
+            "axisLabel": "jobs/s"
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 46,
+      "title": "Job Type Peak Time (ms)",
+      "description": "Peak execution time in milliseconds for each rippled job type. High peak times indicate job types that occasionally block the event loop.",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 134
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${PROMETHEUS}"
+          },
+          "expr": "rippled_job_type_peak_time_ms{node_type=~\"$node_type\"}",
+          "legendFormat": "{{node_type}} {{job_type}}",
+          "interval": "30s",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "custom": {
+            "lineWidth": 1,
+            "fillOpacity": 5,
+            "showPoints": "never",
+            "spanNulls": false,
+            "lineInterpolation": "smooth",
+            "axisLabel": "ms"
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 47,
+      "title": "Initial Sync Duration",
+      "description": "Time in seconds rippled spent performing initial sync after startup. Zero if the node has not restarted since exporter launch.",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 4,
+        "x": 16,
+        "y": 102
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${PROMETHEUS}"
+          },
+          "expr": "rippled_initial_sync_duration_seconds{node_type=~\"$node_type\"}",
+          "legendFormat": "{{node_type}}",
+          "interval": "30s",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "horizontal",
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 60
+              },
+              {
+                "color": "red",
+                "value": 300
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 48,
+      "title": "Historical Ledger Fetch Rate",
+      "description": "Rate of historical ledger data being fetched from peers (per minute). Non-zero during backfill after a fresh sync.",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 4,
+        "x": 20,
+        "y": 102
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${PROMETHEUS}"
+          },
+          "expr": "rippled_historical_perminute{node_type=~\"$node_type\"}",
+          "legendFormat": "{{node_type}}",
+          "interval": "30s",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "horizontal",
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 10
+              },
+              {
+                "color": "red",
+                "value": 100
               }
             ]
           }
