@@ -28,7 +28,7 @@ from typing import Any
 import requests
 from prometheus_client import Counter as PromCounter, Gauge, start_http_server
 
-__version__ = "1.4.1"
+__version__ = "1.5.1"
 
 logging.basicConfig(
     level=logging.INFO,
@@ -87,6 +87,14 @@ _db_node_reads_last: int = 0
 _db_node_read_bytes_last: int = 0
 _db_node_written_bytes_last: int = 0
 _db_node_reads_duration_us_last: int = 0
+
+# Track raw node read hit/total counters so the node read hit rate can be
+# computed over the per-scrape delta (a real-time window) rather than as a
+# cumulative-since-startup ratio. The cumulative ratio is misleading: a burst
+# of cache-missing reads (e.g. peers requesting historical state the node has
+# pruned) makes it drop off a cliff and then recover only very slowly.
+_node_reads_hit_last: int = 0
+_node_reads_total_last: int = 0
 
 # Tracks last-seen rippled uptime; used to detect rippled restarts across scrapes
 _last_rippled_uptime_seconds: int | None = None
@@ -405,7 +413,9 @@ rippled_cache_ledger_hit_rate = Gauge(
 
 rippled_cache_node_read_hit_rate = Gauge(
     "rippled_cache_node_read_hit_rate",
-    "Node read cache hit rate as a percentage (0-100)",
+    "Node read cache hit rate (%) over the most recent scrape window, not "
+    "cumulative since startup. Falls back to the cumulative rate until two "
+    "scrapes have been observed, or when no reads occurred in the window.",
     COMMON_LABELS,
 )
 
@@ -1150,6 +1160,8 @@ def update_counts_metrics() -> None:
     global _db_node_read_bytes_last
     global _db_node_written_bytes_last
     global _db_node_reads_duration_us_last
+    global _node_reads_hit_last
+    global _node_reads_total_last
 
     data = query_rpc("get_counts")
     result: dict[str, Any] = data["result"]
@@ -1164,12 +1176,37 @@ def update_counts_metrics() -> None:
         float(result.get("SLE_hit_rate", 0))
     )
 
+    # Node read hit rate is computed over the per-scrape delta so it reflects
+    # current behaviour. The raw counters are cumulative since rippled startup;
+    # using them directly produces a rate that collapses on a read-miss burst
+    # and recovers only over hours/days. We track the previous hit/total and
+    # divide the deltas instead.
     node_reads_hit: int = int(result.get("node_reads_hit", 0))
     node_reads_total: int = int(result.get("node_reads_total", 0))
-    node_read_hit_rate: float = (
-        (node_reads_hit / node_reads_total * 100.0) if node_reads_total > 0 else 0.0
+
+    # Detect a counter reset (rippled restart): either counter dropping below
+    # its last value means we cannot form a meaningful delta this scrape.
+    counters_reset: bool = (
+        node_reads_hit < _node_reads_hit_last
+        or node_reads_total < _node_reads_total_last
     )
+    hit_delta: int = node_reads_hit - _node_reads_hit_last
+    total_delta: int = node_reads_total - _node_reads_total_last
+
+    if not counters_reset and total_delta > 0:
+        # Normal case: reads happened in this window — use the windowed rate.
+        node_read_hit_rate: float = hit_delta / total_delta * 100.0
+    elif node_reads_total > 0:
+        # First scrape, a reset, or an idle window with no reads — fall back to
+        # the cumulative rate so the metric is never misleadingly zero.
+        node_read_hit_rate = node_reads_hit / node_reads_total * 100.0
+    else:
+        node_read_hit_rate = 0.0
+
     rippled_cache_node_read_hit_rate.labels(node_type=NODE_TYPE).set(node_read_hit_rate)
+
+    _node_reads_hit_last = node_reads_hit
+    _node_reads_total_last = node_reads_total
 
     rippled_db_read_queue.labels(node_type=NODE_TYPE).set(int(result.get("read_queue", 0)))
     rippled_db_write_load.labels(node_type=NODE_TYPE).set(int(result.get("write_load", 0)))
@@ -1223,20 +1260,26 @@ def update_counts_metrics() -> None:
         int(result.get("historical_perminute", 0))
     )
 
-    for object_type, key in (
-        ("Ledger", "ripple::Ledger"),
-        ("Transaction", "ripple::Transaction"),
-        ("STTx", "ripple::STTx"),
-        ("STLedgerEntry", "ripple::STLedgerEntry"),
-        ("STObject", "ripple::STObject"),
-        ("STValidation", "ripple::STValidation"),
-        ("SHAMapInnerNode", "ripple::SHAMapInnerNode"),
-        ("SHAMapAccountStateLeafNode", "ripple::SHAMapAccountStateLeafNode"),
-        ("HashRouterEntry", "ripple::HashRouter::Entry"),
-        ("InboundLedger", "ripple::InboundLedger"),
+    # get_counts object keys are C++ namespace-qualified. xrpld 3.2.0 renamed the
+    # namespace from "ripple::" to "xrpl::"; older 3.1.x builds use "ripple::". Look
+    # up the new prefix first, then fall back to the legacy one so this exporter works
+    # against both 3.2.0+ and pre-3.2.0 nodes.
+    for object_type, unqualified_key in (
+        ("Ledger", "Ledger"),
+        ("Transaction", "Transaction"),
+        ("STTx", "STTx"),
+        ("STLedgerEntry", "STLedgerEntry"),
+        ("STObject", "STObject"),
+        ("STValidation", "STValidation"),
+        ("SHAMapInnerNode", "SHAMapInnerNode"),
+        ("SHAMapAccountStateLeafNode", "SHAMapAccountStateLeafNode"),
+        ("HashRouterEntry", "HashRouter::Entry"),
+        ("InboundLedger", "InboundLedger"),
     ):
+        object_count = result.get(f"xrpl::{unqualified_key}",
+                                  result.get(f"ripple::{unqualified_key}", 0))
         rippled_objects_in_memory.labels(node_type=NODE_TYPE, object_type=object_type).set(
-            int(result.get(key, 0))
+            int(object_count)
         )
 
     for db_name, key in (

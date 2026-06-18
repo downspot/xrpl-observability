@@ -26,7 +26,7 @@ One exporter instance runs per rippled node. Each exporter shares its target nod
 | `exporter/compose.yaml` | Docker Compose for both exporter instances |
 | `exporter/Dockerfile` | Container image definition |
 | `dashboards/rippled-overview.json` | Grafana dashboard — health at a glance (22 panels) |
-| `dashboards/rippled-deep-dive.json` | Grafana dashboard — detailed analysis (45 panels) |
+| `dashboards/rippled-deep-dive.json` | Grafana dashboard — detailed analysis (44 panels) |
 | `prometheus/scrape_configs.yaml` | Prometheus scrape config snippet for both exporters |
 
 ---
@@ -83,7 +83,7 @@ One exporter instance runs per rippled node. Each exporter shares its target nod
 | `rippled_ledger_queue_tx_max` | Gauge | Max queue capacity |
 | `rippled_ledger_expected_tx_count` | Gauge | Expected transactions per ledger |
 | `rippled_cache_ledger_hit_rate` | Gauge | Ledger cache hit rate (%) |
-| `rippled_cache_node_read_hit_rate` | Gauge | Node read cache hit rate (%) |
+| `rippled_cache_node_read_hit_rate` | Gauge | Node read cache hit rate (%), computed over the most recent scrape window (not cumulative since startup) so it reflects current behaviour |
 | `rippled_db_read_queue` | Gauge | Pending DB read requests |
 | `rippled_db_write_load` | Gauge | DB write load |
 | `rippled_consensus_proposing` | Gauge | 1 if node is proposing |
@@ -230,7 +230,7 @@ Both dashboards use a `${PROMETHEUS}` datasource placeholder and will prompt for
 ![rippled Deep Dive — Middle](screenshots/detailed-middle.png)
 ![rippled Deep Dive — Bottom](screenshots/detailed-bottom.png)
 
-45 panels — detailed analysis. Default time range: 6h / 30s refresh.
+44 panels — detailed analysis. Default time range: 6h / 30s refresh.
 
 - Inbound vs outbound peers, peer latency (capped at 500ms), consensus disputes
 - Network fees (base / median / open ledger), transaction queue, version spread (bar chart)
@@ -247,8 +247,8 @@ Both dashboards use a `${PROMETHEUS}` datasource placeholder and will prompt for
 - Initial sync duration, historical ledger fetch rate
 - Cache Health: AL/SLE hit rates, AL size, TreeNode cache and track size
 - I/O Detail: node read/write byte rates, reads duration rate, read thread saturation
-- Objects in Memory: 10 key rippled object types (Ledger, STTx, STObject, SHAMap nodes, etc.)
-- Job Type throughput and peak time per internal job type
+- Objects in Memory: 10 key rippled object types (Ledger, STTx, STObject, SHAMap nodes, etc.), graphed with a current/max/mean legend table
+- Job Type Throughput: jobs/s per internal job type, graphed with a current/max/mean legend table
 
 ### Template Variable
 

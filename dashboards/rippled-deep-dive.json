@@ -149,8 +149,8 @@
             "type": "prometheus",
             "uid": "${PROMETHEUS}"
           },
-          "expr": "rippled_peer_latency_avg_ms{node_type=~\"$node_type\"}",
-          "legendFormat": "{{node_type}} Avg",
+          "expr": "avg_over_time(rippled_peer_latency_avg_ms{node_type=~\"$node_type\"}[5m])",
+          "legendFormat": "{{node_type}} avg (5m)",
           "interval": "30s",
           "refId": "A"
         },
@@ -527,7 +527,7 @@
     {
       "id": 7,
       "title": "Cache Hit Rates",
-      "description": "Percentage of ledger and node-read cache lookups served from cache. Higher is better. A sustained drop can indicate memory pressure or a cold restart.",
+      "description": "Percentage of cache lookups served from cache. Higher is better. Ledger Cache is cumulative since rippled startup (reported directly by rippled). Node Read is a real-time window (per-scrape delta) \u2014 it dips when peers request historical state the node has pruned, then recovers as normal reads resume.",
       "type": "timeseries",
       "datasource": {
         "type": "prometheus",
@@ -555,8 +555,8 @@
             "type": "prometheus",
             "uid": "${PROMETHEUS}"
           },
-          "expr": "rippled_cache_node_read_hit_rate{node_type=~\"$node_type\"}",
-          "legendFormat": "{{node_type}} Node Read",
+          "expr": "avg_over_time(rippled_cache_node_read_hit_rate{node_type=~\"$node_type\"}[5m])",
+          "legendFormat": "{{node_type}} Node Read (5m avg)",
           "interval": "30s",
           "refId": "B"
         }
@@ -2930,14 +2930,14 @@
     {
       "id": 44,
       "title": "Objects in Memory",
-      "description": "Count of key rippled object types held in memory (from get_counts). Useful for tracking memory pressure and cache effectiveness. Includes: Ledger, STTx, STObject, SHAMapInnerNode, SHAMapTreeNode, HashRouter::Entry, RippleState, AccountState, ValidatorListItem, Offer.",
+      "description": "Count of key rippled object types held in memory (from get_counts). Slow-moving; the legend table shows current, max, and mean per series.",
       "type": "timeseries",
       "datasource": {
         "type": "prometheus",
         "uid": "${PROMETHEUS}"
       },
       "gridPos": {
-        "h": 8,
+        "h": 10,
         "w": 24,
         "x": 0,
         "y": 126
@@ -3047,12 +3047,17 @@
       "options": {
         "tooltip": {
           "mode": "multi",
-          "sort": "none"
+          "sort": "desc"
         },
         "legend": {
-          "displayMode": "list",
+          "displayMode": "table",
           "placement": "bottom",
-          "showLegend": true
+          "showLegend": true,
+          "calcs": [
+            "lastNotNull",
+            "max",
+            "mean"
+          ]
         }
       },
       "fieldConfig": {
@@ -3084,18 +3089,18 @@
     },
     {
       "id": 45,
-      "title": "Job Type Throughput (per/s)",
-      "description": "Jobs processed per second for each rippled job type. Tracks internal job queue activity \u2014 spikes may correlate with consensus load or peer activity.",
+      "title": "Job Type Throughput",
+      "description": "Jobs processed per second per internal rippled job type. The legend table shows current, max, and mean per job type.",
       "type": "timeseries",
       "datasource": {
         "type": "prometheus",
         "uid": "${PROMETHEUS}"
       },
       "gridPos": {
-        "h": 8,
-        "w": 12,
+        "h": 10,
+        "w": 24,
         "x": 0,
-        "y": 134
+        "y": 136
       },
       "targets": [
         {
@@ -3112,12 +3117,17 @@
       "options": {
         "tooltip": {
           "mode": "multi",
-          "sort": "none"
+          "sort": "desc"
         },
         "legend": {
-          "displayMode": "list",
+          "displayMode": "table",
           "placement": "bottom",
-          "showLegend": false
+          "showLegend": true,
+          "calcs": [
+            "lastNotNull",
+            "max",
+            "mean"
+          ]
         }
       },
       "fieldConfig": {
@@ -3130,71 +3140,6 @@
             "spanNulls": false,
             "lineInterpolation": "smooth",
             "axisLabel": "jobs/s"
-          },
-          "color": {
-            "mode": "palette-classic"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          }
-        },
-        "overrides": []
-      }
-    },
-    {
-      "id": 46,
-      "title": "Job Type Peak Time (ms)",
-      "description": "Peak execution time in milliseconds for each rippled job type. High peak times indicate job types that occasionally block the event loop.",
-      "type": "timeseries",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${PROMETHEUS}"
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 134
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${PROMETHEUS}"
-          },
-          "expr": "rippled_job_type_peak_time_ms{node_type=~\"$node_type\"}",
-          "legendFormat": "{{node_type}} {{job_type}}",
-          "interval": "30s",
-          "refId": "A"
-        }
-      ],
-      "options": {
-        "tooltip": {
-          "mode": "multi",
-          "sort": "none"
-        },
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": false
-        }
-      },
-      "fieldConfig": {
-        "defaults": {
-          "unit": "ms",
-          "custom": {
-            "lineWidth": 1,
-            "fillOpacity": 5,
-            "showPoints": "never",
-            "spanNulls": false,
-            "lineInterpolation": "smooth",
-            "axisLabel": "ms"
           },
           "color": {
             "mode": "palette-classic"
