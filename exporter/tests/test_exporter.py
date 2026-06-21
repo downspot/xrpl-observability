@@ -248,3 +248,111 @@ class TestReadsDurationDelta:
         """Sub-second deltas are represented correctly."""
         result = _reads_duration_delta_seconds(250_000, 0)
         assert result == pytest.approx(0.25)
+
+
+# ---------------------------------------------------------------------------
+# Windowed node read hit rate tests
+# ---------------------------------------------------------------------------
+
+def _windowed_node_read_hit_rate(
+    hit: int, total: int, hit_last: int, total_last: int
+) -> float:
+    """Mirror update_counts_metrics() windowed node-read-hit-rate logic."""
+    counters_reset: bool = hit < hit_last or total < total_last
+    hit_delta: int = hit - hit_last
+    total_delta: int = total - total_last
+    if not counters_reset and total_delta > 0:
+        return hit_delta / total_delta * 100.0
+    if total > 0:
+        return hit / total * 100.0
+    return 0.0
+
+
+class TestWindowedNodeReadHitRate:
+    def test_windowed_rate_uses_deltas(self) -> None:
+        """Rate reflects only reads in the window, not the cumulative ratio."""
+        # Cumulative would be 50/1000 = 5%, but the window is 90/100 = 90%.
+        result = _windowed_node_read_hit_rate(
+            hit=50 + 90, total=1000 + 100, hit_last=50, total_last=1000
+        )
+        assert result == pytest.approx(90.0)
+
+    def test_cold_window_drops_to_low_rate(self) -> None:
+        """A read-miss burst in the window produces a low windowed rate."""
+        # 1000 new reads, only 5 hits — 0.5% in the window.
+        result = _windowed_node_read_hit_rate(
+            hit=29_000_000 + 5, total=4_900_000_000 + 1000,
+            hit_last=29_000_000, total_last=4_900_000_000,
+        )
+        assert result == pytest.approx(0.5)
+
+    def test_first_scrape_falls_back_to_cumulative(self) -> None:
+        """With no prior reading (last=0), use the cumulative rate."""
+        result = _windowed_node_read_hit_rate(
+            hit=250, total=1000, hit_last=0, total_last=0
+        )
+        assert result == pytest.approx(25.0)
+
+    def test_idle_window_falls_back_to_cumulative(self) -> None:
+        """No reads in the window (total_delta == 0) — use cumulative rate."""
+        result = _windowed_node_read_hit_rate(
+            hit=500, total=2000, hit_last=500, total_last=2000
+        )
+        assert result == pytest.approx(25.0)
+
+    def test_counter_reset_falls_back_to_cumulative(self) -> None:
+        """rippled restart resets counters below last — use cumulative rate."""
+        result = _windowed_node_read_hit_rate(
+            hit=30, total=100, hit_last=9000, total_last=50000
+        )
+        assert result == pytest.approx(30.0)
+
+    def test_zero_total_returns_zero(self) -> None:
+        """No reads ever recorded — rate is zero, not a division error."""
+        result = _windowed_node_read_hit_rate(
+            hit=0, total=0, hit_last=0, total_last=0
+        )
+        assert result == 0.0
+
+
+def _object_count(get_counts_result: dict, unqualified_key: str) -> int:
+    """Mirror update_counts_metrics() object-key lookup.
+
+    xrpld 3.2.0 renamed the C++ namespace from "ripple::" to "xrpl::" in
+    get_counts keys. Prefer the new prefix, fall back to the legacy one so the
+    exporter reads object counts from both 3.2.0+ and pre-3.2.0 nodes.
+    """
+    return int(
+        get_counts_result.get(
+            f"xrpl::{unqualified_key}",
+            get_counts_result.get(f"ripple::{unqualified_key}", 0),
+        )
+    )
+
+
+class TestObjectsInMemoryNamespace:
+    def test_xrpld_320_xrpl_prefix(self) -> None:
+        """xrpld 3.2.0 emits xrpl::-prefixed keys."""
+        result = {"xrpl::Ledger": 352, "xrpl::Transaction": 30423}
+        assert _object_count(result, "Ledger") == 352
+        assert _object_count(result, "Transaction") == 30423
+
+    def test_legacy_ripple_prefix(self) -> None:
+        """Pre-3.2.0 nodes emit ripple::-prefixed keys (rollback-safe)."""
+        result = {"ripple::Ledger": 100, "ripple::STObject": 81045}
+        assert _object_count(result, "Ledger") == 100
+        assert _object_count(result, "STObject") == 81045
+
+    def test_xrpl_preferred_over_ripple(self) -> None:
+        """If both prefixes present, prefer the new xrpl:: value."""
+        result = {"xrpl::Ledger": 352, "ripple::Ledger": 999}
+        assert _object_count(result, "Ledger") == 352
+
+    def test_missing_key_returns_zero(self) -> None:
+        """Unknown object type yields 0, not a KeyError."""
+        assert _object_count({}, "Ledger") == 0
+
+    def test_nested_namespace_key(self) -> None:
+        """HashRouter::Entry keeps its inner :: after the prefix."""
+        result = {"xrpl::HashRouter::Entry": 42}
+        assert _object_count(result, "HashRouter::Entry") == 42
